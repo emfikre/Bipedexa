@@ -58,8 +58,8 @@ bounds.phase(i).integral.upper = Inf;                 % row vector, length = num
 
 % Endpoint constraints (if required)
 
-bounds.eventgroup.lower = zeros(2,1); % row vector
-bounds.eventgroup.upper = zeros(2,1); % row vector
+bounds.eventgroup.lower = zeros(1,2); % row vector
+bounds.eventgroup.upper = zeros(1,2); % row vector
 
 % Path constraints (if required)
 % 6 complimentary limb length constaints 
@@ -85,7 +85,7 @@ bounds.phase(i).path.upper = upperpath; % row vector, length = number of path co
 i = 1;
 guess.phase(i).time    = [0;T];                % column vector, min length = 2
 guess.phase(i).state   = rand(2,15);                % array, min numrows = 2, numcols = numstates
-guess.phase(i).control = rand(2,15);               % array, min numrows = 2, numcols = numcontrols
+guess.phase(i).control = rand(2,6);               % array, min numrows = 2, numcols = numcontrols
 guess.phase(i).integral = rand;               % scalar
 
 %guess.parameter = [];                    % row vector, numrows = numparams
@@ -141,9 +141,10 @@ l=0;
 
 x=X(:,1);
 y=X(:,2);
+theta=X(:,5);
 xdot = X(:,3); % provide derivative
 ydot = X(:,4);
-thetadot
+thetadot=X(:,6);
 F=X(:,7:9); %Collecting Forces 
 Tau=X(:,10:12); %Collecting Torques
 Ftr=F(:,1);
@@ -156,12 +157,12 @@ Tautrsqr=Tautr.^2;
 Tauleadsqr=Taulead.^2;
 Taurefsqr=Tauref.^2;
 
-Fdot=U(:,1:3);
+Fdot=U(:,1:3); 
 Taudot=U(:,4:6);
-P= X(:,13);
+P= X(:,13); % MOve up with the rest of states
 Q= X(:,14);
-Pdot= Flead.*T;
-Qdot= Taulead^2.*T;
+Pdot= Flead;
+Qdot= Taulead.^2;
 
 
 xddot= Ftr.*(x/l)+Fref.*((x-d)/l)+Flead.*((x-D)/l);
@@ -181,7 +182,7 @@ Tautrllc= Tautrsqr.*(lmax-l);
 Tauleadllc=Tauleadsqr.*(lmax-l);
 Taurefllc= Taurefsqr.*(lmax-l);
 Fxc=P.*Ftr;
-Tauxc=Q.Tautr;
+Tauxc=Q.*Tautr;
 phaseout.path = [Ftrllc,Fleadllc,Frefllc,Tautrllc,Tauleadllc,Taurefllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
 end
 
