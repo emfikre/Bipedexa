@@ -197,6 +197,5 @@ output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead)];% event constraints (row vec
 
 J = input.phase(1).integral(1);
 output.objective = J; % objective function (scalar)
-added=1;
-thatscrazy=1;
+
 end
