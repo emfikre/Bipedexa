@@ -84,7 +84,7 @@ bounds.phase(i).path.upper = upperpath; % row vector, length = number of path co
 % ----- PHASE 1 ----- %
 i = 1;
 guess.phase(i).time    = [0;T];                % column vector, min length = 2
-guess.phase(i).state   = rand(2,15);                % array, min numrows = 2, numcols = numstates
+guess.phase(i).state   = rand(2,14);                % array, min numrows = 2, numcols = numstates
 guess.phase(i).control = rand(2,6);               % array, min numrows = 2, numcols = numcontrols
 guess.phase(i).integral = rand;               % scalar
 
@@ -126,7 +126,7 @@ t = input.phase(1).time;
 X = input.phase(1).state;
 U = input.phase(1).control;
 
-aux = input.auxdata;
+auxdata = input.auxdata;
 g= auxdata.g; %gravity
 lmax=auxdata.lmax; %max leg length
 d=auxdata.d; %step length
@@ -136,7 +136,9 @@ Taumax=auxdata.Taumax;
 I=auxdata.I;
 r=auxdata.r;
 T=auxdata.T;
-l=0;
+c1=auxdata.c1;
+c2=suxdata.c2;
+
 %P = input.phase(1).parameter;
 
 x=X(:,1);
@@ -147,6 +149,8 @@ ydot = X(:,4);
 thetadot=X(:,6);
 F=X(:,7:9); %Collecting Forces 
 Tau=X(:,10:12); %Collecting Torques
+P= X(:,13);
+Q= X(:,14);
 Ftr=F(:,1);
 Flead=F(:,2);
 Fref=F(:,3);
@@ -159,15 +163,31 @@ Taurefsqr=Tauref.^2;
 
 Fdot=U(:,1:3); 
 Taudot=U(:,4:6);
-P= X(:,13); % MOve up with the rest of states
-Q= X(:,14);
 Pdot= Flead;
 Qdot= Taulead.^2;
+
+%ntime=length(x);
+xc=[x,y];
+dvec=[d,0];
+Dvec=[D,0];
+rvec=-r.*[cos(theta),sin(theta)];
+
+ltr = xc+rvec;
+llead=(xc+rvec)-dvec;
+lref=(xc+rvec)-Dvec;
+
+ultr=ltr./norm(ltr);
+ullead=llead./nortm(llead);
+ulref =lref./norm(lref);
+
+Ftrvec= (Ftr/ultr)*ltr;
+Fleadvec = (Flead/ullead)*llead;
+Frefvec = (Fref/ulref)*llref;
 
 
 xddot= Ftr.*(x/l)+Fref.*((x-d)/l)+Flead.*((x-D)/l);
 yddot= Ftr.*(y/l)+Fref.*(y/l)+Flead.*(y/l)-g;
-thetddot=Tautr+Taulead+Tauref+(cross(r,Ftr)+cross(r,Flead)+cross(r,Fref));
+thetddot=Tautr+Taulead+Tauref+(cross(rvec,Ftrvec)+cross(rvec,Fleadvec)+cross(rvec,Frefvec));
 
 phaseout.dynamics = [xddot,yddot,thetddot];
 

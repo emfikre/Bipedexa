@@ -9,5 +9,7 @@ auxdata.Fmax = 4*auxdata.g;
 auxdata.Taumax = 4*auxdata.g*auxdata.lmax;
 auxdata.r = 0.2*auxdata.lmax;
 auxdata.I = auxdata.g*auxdata.r^2;
+auxdata.c1=10;
+auzdata.c2=10;
 
 Bipedexa(auxdata)
