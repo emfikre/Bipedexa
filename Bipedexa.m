@@ -69,15 +69,8 @@ bounds.eventgroup.upper = zeros(1,2); % row vector
 i = 1;
 bounds.phase(i).path.lower = zeros(1,8); % row vector, length = number of path constraints in phase
 
-pcl=6;
-pc=8;
-for j=1:pcl
-    upperpath=zeros(1,pc);
-    upperpath(1,j)=inf;
-    
-end
 
-bounds.phase(i).path.upper = upperpath; % row vector, length = number of path constraints in phase
+bounds.phase(i).path.upper =[inf inf inf inf inf inf 0 0]; % row vector, length = number of path constraints in phase
 %-------------------------------------------------------------------------%
 %---------------------------- Provide Guess ------------------------------%
 %-------------------------------------------------------------------------%
@@ -137,7 +130,7 @@ I=auxdata.I;
 r=auxdata.r;
 T=auxdata.T;
 c1=auxdata.c1;
-c2=suxdata.c2;
+c2=auxdata.c2;
 
 %P = input.phase(1).parameter;
 
@@ -167,26 +160,37 @@ Pdot= Flead;
 Qdot= Taulead.^2;
 
 %ntime=length(x);
-xc=[x,y];
-dvec=[d,0];
-Dvec=[D,0];
-rvec=-r.*[cos(theta),sin(theta)];
+zs=zeros(size(x));
+dvec=zeros(size(x));
+Dvec=zeros(size(x));
+ref=size(x,1);
+for i=1:ref
+    dvec(i,1)=d;
+    Dvec(i,1)=D;
+end
+xc=[x,y,zs];
+dvec=[dvec,zs,zs];
+Dvec=[Dvec,zs,zs];
+rvec=-r.*[cos(theta),sin(theta),zs];
 
 ltr = xc+rvec;
 llead=(xc+rvec)-dvec;
 lref=(xc+rvec)-Dvec;
 
-ultr=ltr./norm(ltr);
-ullead=llead./nortm(llead);
-ulref =lref./norm(lref);
+magnitudeltr=sqrt(dot(ltr,ltr,2));
+magnitudellead=sqrt(dot(llead,llead,2));
+magnitudelref= sqrt(dot(lref,lref,2));
+ultr=ltr./magnitudeltr;
+ullead=llead./magnitudellead;
+ulref =lref./magnitudelref;
 
-Ftrvec= (Ftr/ultr)*ltr;
-Fleadvec = (Flead/ullead)*llead;
-Frefvec = (Fref/ulref)*llref;
+Ftrvec= Ftr.*ultr;
+Fleadvec = Flead.*ullead;
+Frefvec = Fref.*ulref;
 
 
-xddot= Ftr.*(x/l)+Fref.*((x-d)/l)+Flead.*((x-D)/l);
-yddot= Ftr.*(y/l)+Fref.*(y/l)+Flead.*(y/l)-g;
+xddot= Ftr.*(x./ltr)+Fref.*((x-dvec)./lref)+Flead.*((x-Dvec)./llead);
+yddot= Ftr.*(y./ltr)+Fref.*(y./lref)+Flead.*(y./llead)-g;
 thetddot=Tautr+Taulead+Tauref+(cross(rvec,Ftrvec)+cross(rvec,Fleadvec)+cross(rvec,Frefvec));
 
 phaseout.dynamics = [xddot,yddot,thetddot];
@@ -195,12 +199,12 @@ phaseout.dynamics = [xddot,yddot,thetddot];
 %what is c1 and c2 respectively?
 phaseout.integrand = c1*sum(F.^2)+c2*sum(Tau.^2);
 %Path constraint
-Ftrllc= Ftr.*(lmax-l);
-Fleadllc= Flead.*(lmax-l);
-Frefllc= Fref.*(lmax-l);
-Tautrllc= Tautrsqr.*(lmax-l);
-Tauleadllc=Tauleadsqr.*(lmax-l);
-Taurefllc= Taurefsqr.*(lmax-l);
+Ftrllc= Ftr.*(lmax-ltr);
+Fleadllc= Flead.*(lmax-llead);
+Frefllc= Fref.*(lmax-lref);
+Tautrllc= Tautrsqr.*(lmax-ltr);
+Tauleadllc=Tauleadsqr.*(lmax-ltr);
+Taurefllc= Taurefsqr.*(lmax-llead);
 Fxc=P.*Ftr;
 Tauxc=Q.*Tautr;
 phaseout.path = [Ftrllc,Fleadllc,Frefllc,Tautrllc,Tauleadllc,Taurefllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
