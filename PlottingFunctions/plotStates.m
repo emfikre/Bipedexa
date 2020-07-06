@@ -87,8 +87,6 @@ for i = 1:2
         % plot legend
         legend({'Horz. vel. $- D/T$','Vert. vel.'},...
             'interpreter','latex','autoupdate','off','fontsize',lgdFS)
-        % plot x axis
-        xlabel('Time (s)')
     end
     %%% Plot rotation and rotaional velocities
     axes(sp(5))
@@ -117,6 +115,9 @@ for i = 1:2
         
         yyaxis left
         ylabel('Ang. position [deg]')
+        
+        % plot x axis
+        xlabel('Time (s)')
     end
     
     %%% Plot forces
