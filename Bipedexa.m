@@ -58,8 +58,8 @@ bounds.phase(i).integral.upper = Inf;                 % row vector, length = num
 
 % Endpoint constraints (if required)
 
-bounds.eventgroup.lower = zeros(1,2); % row vector
-bounds.eventgroup.upper = zeros(1,2); % row vector
+bounds.eventgroup.lower = [0,0,D,0,0,0,0,0]; % row vector
+bounds.eventgroup.upper = [0,0,D,0,0,0,0,0]; % row vector
 
 % Path constraints (if required)
 % 6 complimentary limb length constaints 
@@ -222,14 +222,35 @@ phaseout.path = [magFtrllc,magFleadllc,magFrefllc,magTautrllc,magTauleadllc,magT
 end
 
 function output = Endpoint(input)
-%Endpoint Constraint for Forces and Torques
+
 Finalstates =input.phase(1).finalstate;
 Initialstates= input.phase(1).initialstate;
+
 Ftr=Initialstates(7); 
 Flead=Finalstates(8);
+
 Ttr=Initialstates(10);
 Tlead=Finalstates(11);
-output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead)];% event constraints (row vector)
+
+xbeg=Initialstates(1); %diff of d
+xend=Finalstates(1);
+
+ybeg=Initialstates(2); %equal
+yend=Finalstates(2);
+
+xdotbeg=Initialstates(3);
+xdotend=Finalstates(3);
+
+ydotbeg=Initialstates(4);
+ydotend=Finalstates(4);
+
+thetabeg=Initialstates(5);
+thetaend=Finalstates(5);
+
+omegabeg=Initialstates(6);
+omegaend=Finalstates(6);
+
+output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (xbeg-xend) (ybeg-yend) (xdotbeg-xdotend) (ydotbeg-ydotend) (thetabeg-thetaend) (omegabeg-omegaend)];% event constraints (row vector)
 
 J = input.phase(1).integral(1);
 output.objective = J; % objective function (scalar)
