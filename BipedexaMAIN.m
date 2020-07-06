@@ -15,5 +15,5 @@ auxdata.c2=10;
 out = Bipedexa(auxdata);
 
 %%
-
-plotGRF(out)
+close all
+plotStates(out)

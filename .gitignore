@@ -1,2 +1,6 @@
 
 bipedalprobSNOPTinfo.txt
+
+*.m~
+
+.DS_Store

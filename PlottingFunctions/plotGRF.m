@@ -13,3 +13,6 @@ plot(t,F)
 hold on
 resetcolor
 plot(ti,Fi,'o')
+
+legend({'$F_{tr}$','$F_{ld}$','$F_{ref}$'},'interpreter','latex')
+ylabel('F [N/(body mass)]')
