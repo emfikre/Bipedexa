@@ -12,4 +12,8 @@ auxdata.I = auxdata.g*auxdata.r^2;
 auxdata.c1=10;
 auxdata.c2=10;
 
-Bipedexa(auxdata)
+out = Bipedexa(auxdata);
+
+%%
+close all
+plotStates(out)
