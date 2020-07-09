@@ -165,8 +165,11 @@ Qdot= Taulead.^2;
 zs=zeros(size(x));
 os=ones(size(x));
 temp=[os,zs,zs];
+tempcol=os;
 dvec=temp*d;
 Dvec=temp*D;
+dveccol=tempcol*d;
+Dveccol=tempcol*D;
 
 rvec=-r.*[cos(theta),sin(theta),zs];
 xc=[x,y,zs];
@@ -192,10 +195,8 @@ crossFleadz=crossFlead(:,3); %Extracting z column
 crossFref=cross(rvec,Frefvec);
 crossFrefz=crossFref(:,3); %Extracting z column
 
-xddotmat= Ftr.*(x./ltr)+Fref.*((x-dvec)./lref)+Flead.*((x-Dvec)./llead);
-xddot=xddotmat(:,1);
-yddotmat= Ftr.*(y./ltr)+Fref.*(y./lref)+Flead.*(y./llead)-g;
-yddot=yddotmat(:,2);
+xddot= Ftr.*(x./magnitudeltr)+Fref.*((x-dveccol)./magnitudelref)+Flead.*((x-Dveccol)./magnitudellead);
+yddot= Ftr.*(y./magnitudeltr)+Fref.*(y./magnitudelref)+Flead.*(y./magnitudellead)-g;
 thetaddot=Tautr+Taulead+Tauref+crossFtrz+crossFleadz+crossFrefz;
 
 phaseout.dynamics = [xdot,ydot,xddot,yddot,thetadot,thetaddot,Fdot,Taudot,Pdot,Qdot];
@@ -204,21 +205,21 @@ phaseout.dynamics = [xdot,ydot,xddot,yddot,thetadot,thetaddot,Fdot,Taudot,Pdot,Q
 %what is c1 and c2 respectively?
 phaseout.integrand = c1*(Ftr.^2+Fref.^2+Flead.^2)+c2*(Tautr.^2+Tauref.^2+Taulead.^2);
 %Path constraint
-Ftrllc= Ftr.*(lmax-ltr);
-magFtrllc= sqrt(dot(Ftrllc,Ftrllc,2));
-Fleadllc= Flead.*(lmax-llead);
-magFleadllc= sqrt(dot(Fleadllc,Fleadllc,2));
-Frefllc= Fref.*(lmax-lref);
-magFrefllc=sqrt(dot(Frefllc,Frefllc,2));
-Tautrllc= Tautrsqr.*(lmax-ltr);
-magTautrllc=sqrt(dot(Tautrllc,Tautrllc,2));
-Tauleadllc=Tauleadsqr.*(lmax-ltr);
-magTauleadllc=sqrt(dot(Tauleadllc,Tauleadllc,2));
-Taurefllc= Taurefsqr.*(lmax-llead);
-magTaurefllc=sqrt(dot(Taurefllc,Taurefllc,2));
+Ftrllc= Ftr.*(lmax-magnitudeltr);
+%magFtrllc= sqrt(dot(Ftrllc,Ftrllc,2));
+Fleadllc= Flead.*(lmax-magnitudellead);
+%magFleadllc= sqrt(dot(Fleadllc,Fleadllc,2));
+Frefllc= Fref.*(lmax-magnitudelref);
+%magFrefllc=sqrt(dot(Frefllc,Frefllc,2));
+Tautrllc= Tautrsqr.*(lmax-magnitudeltr);
+%magTautrllc=sqrt(dot(Tautrllc,Tautrllc,2));
+Tauleadllc=Tauleadsqr.*(lmax-magnitudellead);
+%magTauleadllc=sqrt(dot(Tauleadllc,Tauleadllc,2));
+Taurefllc= Taurefsqr.*(lmax-magnitudelref);
+%magTaurefllc=sqrt(dot(Taurefllc,Taurefllc,2));
 Fxc=P.*Ftr;
 Tauxc=Q.*Tautr;
-phaseout.path = [magFtrllc,magFleadllc,magFrefllc,magTautrllc,magTauleadllc,magTaurefllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
+phaseout.path = [Ftrllc,Fleadllc,Frefllc,Tautrllc,Tauleadllc,Taurefllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
 end
 
 function output = Endpoint(input)
@@ -250,7 +251,7 @@ thetaend=Finalstates(5);
 omegabeg=Initialstates(6);
 omegaend=Finalstates(6);
 
-output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (xbeg-xend) (ybeg-yend) (xdotbeg-xdotend) (ydotbeg-ydotend) (thetabeg-thetaend) (omegabeg-omegaend)];% event constraints (row vector)
+output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (xend-xbeg) (ybeg-yend) (xdotbeg-xdotend) (ydotbeg-ydotend) (thetabeg-thetaend) (omegabeg-omegaend)];% event constraints (row vector)
 
 J = input.phase(1).integral(1);
 output.objective = J; % objective function (scalar)
