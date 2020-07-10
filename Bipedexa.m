@@ -34,15 +34,21 @@ bounds.phase(i).finaltime.upper = T ;                % scalar
  ylow = 0;
  yupp = Inf;
  Flow= zeros(1,3);
+ Fuppini=[1 0 0]*Fmax;
+ Fuppfin=[0 1 0]*Fmax;
  Fupp= [1 1 1]*Fmax;
  Taulow= [1 1 1]*(-Taumax);
+ Taulowini= [1 0 0]*(-Taumax);
+ Tauuppini = [1 0 0]*(Taumax);
+ Taulowfin =[0 1 0]*(-Taumax);
+ Tauuppfin = [0 1 0]*(Taumax);
  Tauupp= [1 1 1]*Taumax;
-bounds.phase(i).initialstate.lower = [xlow,ylow,0,0,0,0,Flow,Taulow,0,0];           % row vector, length = numstates
-bounds.phase(i).initialstate.upper = [xlow,yupp,Inf,Inf,Inf,Inf,Fupp,Tauupp,0,Inf];           % row vector, length = numstates
-bounds.phase(i).state.lower = [xlow,ylow,0,0,0,0,Flow,Taulow,0,0];             % row vector, length = numstates
-bounds.phase(i).state.upper = [xupp,yupp,Inf,Inf,Inf,Inf,Fupp,Tauupp,Inf,Inf];                 % row vector, length = numstates
-bounds.phase(i).finalstate.lower = [xupp,ylow,0,0,0,0,Flow,Taulow,0,0];             % row vector, length = numstates
-bounds.phase(i).finalstate.upper = [xupp,yupp,Inf,Inf,Inf,Inf,Fupp,Tauupp,Fmax*T,Inf];             % row vector, length = numstates
+bounds.phase(i).initialstate.lower = [xlow,ylow,-Inf,-Inf,0,-Inf,Flow,Taulowini,0,0];           % row vector, length = numstates
+bounds.phase(i).initialstate.upper = [xlow,yupp,Inf,Inf,pi,Inf,Fuppini,Tauuppini,0,Inf];           % row vector, length = numstates
+bounds.phase(i).state.lower = [xlow,ylow,-Inf,-Inf,0,-Inf,Flow,Taulow,0,0];             % row vector, length = numstates
+bounds.phase(i).state.upper = [xupp,yupp,Inf,Inf,pi,Inf,Fupp,Tauupp,Inf,Inf];                 % row vector, length = numstates
+bounds.phase(i).finalstate.lower = [xupp,ylow,-Inf,-Inf,0,-Inf,Flow,Taulowfin,0,0];             % row vector, length = numstates
+bounds.phase(i).finalstate.upper = [xupp,yupp,Inf,Inf,pi,Inf,Fuppfin,Tauuppfin,Fmax*T,Inf];             % row vector, length = numstates
 % 3 Time derivative of force controls
 % 3 time derivative of torque controls
 neg=[1 1 1]*(-Inf);
@@ -58,8 +64,8 @@ bounds.phase(i).integral.upper = Inf;                 % row vector, length = num
 
 % Endpoint constraints (if required)
 
-bounds.eventgroup.lower = [0,0,D,0,0,0,0,0]; % row vector
-bounds.eventgroup.upper = [0,0,D,0,0,0,0,0]; % row vector
+bounds.eventgroup.lower = [0,0,0,0,0,0,0]; % row vector
+bounds.eventgroup.upper = [0,0,0,0,0,0,0]; % row vector
 
 % Path constraints (if required)
 % 6 complimentary limb length constaints 
@@ -75,11 +81,19 @@ bounds.phase(i).path.upper =[inf inf inf inf inf inf 0 0]; % row vector, length 
 %---------------------------- Provide Guess ------------------------------%
 %-------------------------------------------------------------------------%
 % ----- PHASE 1 ----- %
+% i = 1;
+% guess.phase(i).time    = [0;T];                % column vector, min length = 2
+% guess.phase(i).state   = rand(2,14);                % array, min numrows = 2, numcols = numstates
+% guess.phase(i).control = rand(2,6);               % array, min numrows = 2, numcols = numcontrols
+% guess.phase(i).integral = rand;               % scalar
+
 i = 1;
 guess.phase(i).time    = [0;T];                % column vector, min length = 2
-guess.phase(i).state   = rand(2,14);                % array, min numrows = 2, numcols = numstates
-guess.phase(i).control = rand(2,6);               % array, min numrows = 2, numcols = numcontrols
-guess.phase(i).integral = rand;               % scalar
+guess.phase(i).state   = [0,lmax+r,D/T,0,pi/2,0,Fmax,0,Fmax,0,0,0,0,0; ...
+                          0,lmax+r,D/T,0,pi/2,0,0,Fmax,Fmax,0,0,0,Fmax*(T/2),0];                % array, min numrows = 2, numcols = numstates
+guess.phase(i).control = [-Fmax/T,Fmax/T,0,0,0,0; ...
+                          -Fmax/T,Fmax/T,0,0,0,0];               % array, min numrows = 2, numcols = numcontrols
+guess.phase(i).integral = 1;
 
 %guess.parameter = [];                    % row vector, numrows = numparams
 
@@ -197,7 +211,7 @@ crossFrefz=crossFref(:,3); %Extracting z column
 
 xddot= Ftr.*(x./magnitudeltr)+Fref.*((x-dveccol)./magnitudelref)+Flead.*((x-Dveccol)./magnitudellead);
 yddot= Ftr.*(y./magnitudeltr)+Fref.*(y./magnitudelref)+Flead.*(y./magnitudellead)-g;
-thetaddot=Tautr+Taulead+Tauref+crossFtrz+crossFleadz+crossFrefz;
+thetaddot=(Tautr+Taulead+Tauref+crossFtrz+crossFleadz+crossFrefz)/I;
 
 phaseout.dynamics = [xdot,ydot,xddot,yddot,thetadot,thetaddot,Fdot,Taudot,Pdot,Qdot];
 
@@ -233,8 +247,6 @@ Flead=Finalstates(8);
 Ttr=Initialstates(10);
 Tlead=Finalstates(11);
 
-xbeg=Initialstates(1); %diff of d
-xend=Finalstates(1);
 
 ybeg=Initialstates(2); %equal
 yend=Finalstates(2);
@@ -251,7 +263,7 @@ thetaend=Finalstates(5);
 omegabeg=Initialstates(6);
 omegaend=Finalstates(6);
 
-output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (xend-xbeg) (ybeg-yend) (xdotbeg-xdotend) (ydotbeg-ydotend) (thetabeg-thetaend) (omegabeg-omegaend)];% event constraints (row vector)
+output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (ybeg-yend) (xdotbeg-xdotend) (ydotbeg-ydotend) (thetabeg-thetaend) (omegabeg-omegaend)];% event constraints (row vector)
 
 J = input.phase(1).integral(1);
 output.objective = J; % objective function (scalar)
