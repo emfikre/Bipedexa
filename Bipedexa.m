@@ -51,13 +51,17 @@ bounds.phase(i).finalstate.lower = [xupp,ylow,-Inf,-Inf,0,-Inf,Flow,Taulowfin,0,
 bounds.phase(i).finalstate.upper = [xupp,yupp,Inf,Inf,pi,Inf,Fuppfin,Tauuppfin,Fmax*T,Inf];             % row vector, length = numstates
 % 3 Time derivative of force controls
 % 3 time derivative of torque controls
+% 3 relaxation parameters (leg length, Force)
+% 3 relaxation parameters (leg length, torque)
+% 1 relaxation paramter (leg exclusion, force)
+% 1 relaxation paramter (leg exclusion, torque)
 neg=[1 1 1]*(-Inf);
 pos= [1 1 1]*(Inf);
-bounds.phase(i).control.lower = [neg,neg];                % row vector, length = numstates
-bounds.phase(i).control.upper = [pos,pos];                % row vector, length = numstates
+bounds.phase(i).control.lower = [neg,neg,zeros(1,8)];                % row vector, length = numstates
+bounds.phase(i).control.upper = [pos,pos,Inf(1,8)];                % row vector, length = numstates
 % ???
-bounds.phase(i).integral.lower = 0;                 % row vector, length = numintegrals
-bounds.phase(i).integral.upper = Inf;                 % row vector, length = numintegrals
+bounds.phase(i).integral.lower = [0,0];                 % row vector, length = numintegrals
+bounds.phase(i).integral.upper = [Inf,Inf];                 % row vector, length = numintegrals
 % no parameters introduced
 %bounds.parameter.lower = ;                      % row vector, length = numintegrals
 %bounds.parameter.upper = ;                      % row vector, length = numintegrals
@@ -68,8 +72,8 @@ bounds.eventgroup.lower = [0,0,0,0,0,0,0]; % row vector
 bounds.eventgroup.upper = [0,0,0,0,0,0,0]; % row vector
 
 % Path constraints (if required)
-% 6 complimentary limb length constaints 
-% 2 complimentary exclusion constaints 
+% 6 complementarity limb length constaints 
+% 2 complementarity exclusion constaints 
 
 % ----- PHASE 1 ----- %
 i = 1;
@@ -91,9 +95,9 @@ i = 1;
 guess.phase(i).time    = [0;T];                % column vector, min length = 2
 guess.phase(i).state   = [0,lmax+r,D/T,0,pi/2,0,Fmax,0,Fmax,0,0,0,0,0; ...
                           0,lmax+r,D/T,0,pi/2,0,0,Fmax,Fmax,0,0,0,Fmax*(T/2),0];                % array, min numrows = 2, numcols = numstates
-guess.phase(i).control = [-Fmax/T,Fmax/T,0,0,0,0; ...
-                          -Fmax/T,Fmax/T,0,0,0,0];               % array, min numrows = 2, numcols = numcontrols
-guess.phase(i).integral = 1;
+guess.phase(i).control = [-Fmax/T,Fmax/T,0,0,0,0,0.1*ones(1,8); ...
+                          -Fmax/T,Fmax/T,0,0,0,0,0.1*ones(1,8)];               % array, min numrows = 2, numcols = numcontrols
+guess.phase(i).integral = [1,0.1*T];
 
 %guess.parameter = [];                    % row vector, numrows = numparams
 
@@ -101,8 +105,8 @@ guess.phase(i).integral = 1;
 %-------------------------------------------------------------------------%
 %----------Provide Mesh Refinement Method and Initial Mesh ---------------%
 %-------------------------------------------------------------------------%
-setup.mesh.maxiterations=2;
-
+setup.mesh.maxiterations=3;
+setup.method = 'RPM-integration';
 % not required
 
 %-------------------------------------------------------------------%
@@ -113,7 +117,8 @@ setup.functions.continuous        = @Continuous;
 setup.functions.endpoint          = @Endpoint;
 setup.auxdata                     = auxdata; % not necessary
 setup.bounds                      = bounds;
-setup.nlp.solver= 'snopt';
+setup.nlp.solver                  = 'snopt';
+setup.nlp.snoptoptions.maxiterations = 2000;
 setup.guess                       = guess;
 
 setup.derivatives.derivativelevel = 'first';
@@ -143,8 +148,9 @@ Taumax=auxdata.Taumax;
 I=auxdata.I;
 r=auxdata.r;
 T=auxdata.T;
-c1=auxdata.c1;
-c2=auxdata.c2;
+c = auxdata.c;
+
+
 
 %P = input.phase(1).parameter;
 
@@ -159,6 +165,16 @@ Tau=X(:,10:12); %Collecting Torques
 P= X(:,13);
 Q= X(:,14);
 
+% Collect force and torque rates of change
+dF = U(:,1:3);
+dTau = U(:,4:6);
+
+% Collect relaxation parameters
+sLimbF   = U(:,7:9);
+sLimbTau = U(:,10:12);
+sExclF   = U(:,13);
+sExclTau = U(:,14);
+
 Ftr=F(:,1);
 Flead=F(:,2);
 Fref=F(:,3);
@@ -169,8 +185,8 @@ Tautrsqr=Tautr.^2;
 Tauleadsqr=Taulead.^2;
 Taurefsqr=Tauref.^2;
 
-Fdot=U(:,1:3); 
-Taudot=U(:,4:6);
+Fdot=dF; 
+Taudot=dTau;
 
 Pdot= Flead;
 Qdot= Taulead.^2;
@@ -216,23 +232,30 @@ thetaddot=(Tautr+Taulead+Tauref+crossFtrz+crossFleadz+crossFrefz)/I;
 phaseout.dynamics = [xdot,ydot,xddot,yddot,thetadot,thetaddot,Fdot,Taudot,Pdot,Qdot];
 
 
-%what is c1 and c2 respectively?
-phaseout.integrand = c1*(Ftr.^2+Fref.^2+Flead.^2)+c2*(Tautr.^2+Tauref.^2+Taulead.^2);
-%Path constraint
-Ftrllc= Ftr.*(lmax-magnitudeltr);
-%magFtrllc= sqrt(dot(Ftrllc,Ftrllc,2));
-Fleadllc= Flead.*(lmax-magnitudellead);
-%magFleadllc= sqrt(dot(Fleadllc,Fleadllc,2));
-Frefllc= Fref.*(lmax-magnitudelref);
-%magFrefllc=sqrt(dot(Frefllc,Frefllc,2));
-Tautrllc= Tautrsqr.*(lmax-magnitudeltr);
-%magTautrllc=sqrt(dot(Tautrllc,Tautrllc,2));
-Tauleadllc=Tauleadsqr.*(lmax-magnitudellead);
-%magTauleadllc=sqrt(dot(Tauleadllc,Tauleadllc,2));
-Taurefllc= Taurefsqr.*(lmax-magnitudelref);
-%magTaurefllc=sqrt(dot(Taurefllc,Taurefllc,2));
-Fxc=P.*Ftr;
-Tauxc=Q.*Tautr;
+% the vector c contains scaling parameters, specifying the relative
+% amplification of various terms
+
+% First column: Main cost
+% Second column: relaxation parameter penalties
+phaseout.integrand = ...
+    [c(1)*(Ftr.^2+Fref.^2+Flead.^2)+c(2)*(Tautr.^2+Tauref.^2+Taulead.^2), ...
+     c(3)*sum(sLimbF,2) + c(4)*sum(sLimbTau,2) + c(5)*sExclF + c(6)*sExclTau]; 
+
+%%% Path constraints
+
+% Force activation limb length constraints
+Ftrllc= Ftr.*(lmax-magnitudeltr) - sLimbF(:,1);
+Fleadllc= Flead.*(lmax-magnitudellead) - sLimbF(:,2);
+Frefllc= Fref.*(lmax-magnitudelref) - sLimbF(:,3);
+
+% Torque activation limb length constraints
+Tautrllc= Tautrsqr.*(lmax-magnitudeltr) - sLimbTau(:,1);
+Tauleadllc=Tauleadsqr.*(lmax-magnitudellead) - sLimbTau(:,2);
+Taurefllc= Taurefsqr.*(lmax-magnitudelref) - sLimbTau(:,3);
+
+% Limb exclusion constraints
+Fxc=P.*Ftr - sExclF;
+Tauxc=Q.*Tautr - sExclTau;
 phaseout.path = [Ftrllc,Fleadllc,Frefllc,Tautrllc,Tauleadllc,Taurefllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
 end
 
@@ -265,7 +288,8 @@ omegaend=Finalstates(6);
 
 output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (ybeg-yend) (xdotbeg-xdotend) (ydotbeg-ydotend) (thetabeg-thetaend) (omegabeg-omegaend)];% event constraints (row vector)
 
-J = input.phase(1).integral(1);
-output.objective = J; % objective function (scalar)
+J1 = input.phase.integral(1); % F^2+Tau^2 cost
+J2 = input.phase.integral(2); % relaxation penalties
+output.objective = J1+J2; % objective function (scalar)
 
 end
