@@ -1,4 +1,4 @@
-function output = Bipedexa(auxdata)
+function output = Bipedexa(auxdata,guess)
 
 %-------------------------------------------------------------------%
 %-------------------- Data Required by Problem ---------------------%
@@ -12,6 +12,7 @@ Taumax=auxdata.Taumax;
 I=auxdata.I;
 r=auxdata.r;
 T=auxdata.T;
+m=auxdata.m;
 % specify auxdata if not already done
 
 %-------------------------------------------------------------------%
@@ -90,7 +91,7 @@ bounds.phase(i).path.upper =[inf inf inf inf inf inf 0 0]; % row vector, length 
 % guess.phase(i).state   = rand(2,14);                % array, min numrows = 2, numcols = numstates
 % guess.phase(i).control = rand(2,6);               % array, min numrows = 2, numcols = numcontrols
 % guess.phase(i).integral = rand;               % scalar
-
+if isempty(guess)
 i = 1;
 guess.phase(i).time    = [0;T];                % column vector, min length = 2
 guess.phase(i).state   = [0,lmax+r,D/T,0,pi/2,0,Fmax,0,Fmax,0,0,0,0,0; ...
@@ -99,6 +100,17 @@ guess.phase(i).control = [-Fmax/T,Fmax/T,0,0,0,0,0.1*ones(1,8); ...
                           -Fmax/T,Fmax/T,0,0,0,0,0.1*ones(1,8)];               % array, min numrows = 2, numcols = numcontrols
 guess.phase(i).integral = [1,0.1*T];
 
+elseif isstruct(guess)
+     % it's an output struct from a previous trial
+    guess1 = guess;
+    guess = [];
+    % pull out the guess
+    guess.phase.time = guess1.result.solution.phase.time;
+    guess.phase.state = guess1.result.solution.phase.state;
+    %guess.parameter = guess1.result.solution.parameter;
+    guess.phase.control = guess1.result.solution.phase.control;
+    guess.phase.integral = guess1.result.solution.phase.integral;
+end
 %guess.parameter = [];                    % row vector, numrows = numparams
 
 
@@ -106,7 +118,8 @@ guess.phase(i).integral = [1,0.1*T];
 %----------Provide Mesh Refinement Method and Initial Mesh ---------------%
 %-------------------------------------------------------------------------%
 setup.mesh.maxiterations=3;
-setup.method = 'RPM-integration';
+setup.method= 'RPM-integration';
+
 % not required
 
 %-------------------------------------------------------------------%
@@ -117,7 +130,7 @@ setup.functions.continuous        = @Continuous;
 setup.functions.endpoint          = @Endpoint;
 setup.auxdata                     = auxdata; % not necessary
 setup.bounds                      = bounds;
-setup.nlp.solver                  = 'snopt';
+setup.nlp.solver= 'snopt';
 setup.nlp.snoptoptions.maxiterations = 2000;
 setup.guess                       = guess;
 
@@ -225,8 +238,8 @@ crossFleadz=crossFlead(:,3); %Extracting z column
 crossFref=cross(rvec,Frefvec);
 crossFrefz=crossFref(:,3); %Extracting z column
 
-xddot= Ftr.*(x./magnitudeltr)+Fref.*((x-dveccol)./magnitudelref)+Flead.*((x-Dveccol)./magnitudellead);
-yddot= Ftr.*(y./magnitudeltr)+Fref.*(y./magnitudelref)+Flead.*(y./magnitudellead)-g;
+xddot= (Ftr/m).*(x./magnitudeltr)+(Fref/m).*((x-dveccol)./magnitudelref)+(Flead/m).*((x-Dveccol)./magnitudellead);
+yddot= (Ftr/m).*(y./magnitudeltr)+(Fref/m).*(y./magnitudelref)+(Flead/m).*(y./magnitudellead)-g;
 thetaddot=(Tautr+Taulead+Tauref+crossFtrz+crossFleadz+crossFrefz)/I;
 
 phaseout.dynamics = [xdot,ydot,xddot,yddot,thetadot,thetaddot,Fdot,Taudot,Pdot,Qdot];

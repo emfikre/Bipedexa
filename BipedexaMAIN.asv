@@ -1,23 +1,20 @@
 % bipedexa MAIN
 
 auxdata.g = 1;
+auxdata.m=50;
 auxdata.lmax = 1;
-auxdata.T = 1.5;
+auxdata.T = 0.1;
 auxdata.D = 0.5;
-auxdata.m=65;
 auxdata.d = auxdata.D/2;
 auxdata.Fmax = 4*auxdata.g;
 auxdata.Taumax = 4*auxdata.g*auxdata.lmax;
-auxdata.r = 0.5*auxdata.lmax;
+auxdata.r = 0.2*auxdata.lmax;
 auxdata.I = auxdata.g*auxdata.r^2;
-auxdata.c = [10,1000,0.1,0.1,1,1];
+auxdata.c1=10;
+auxdata.c2=10;
 guess=[];
 out = Bipedexa(auxdata,guess);
 
 %%
 close all
 plotStates(out)
-
-%% 
-close all
-Bipedexa_animate(out,'test')
