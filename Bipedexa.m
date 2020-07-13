@@ -162,7 +162,7 @@ I=auxdata.I;
 r=auxdata.r;
 T=auxdata.T;
 c = auxdata.c;
-
+m = auxdata.m;
 
 
 %P = input.phase(1).parameter;
