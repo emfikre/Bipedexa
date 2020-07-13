@@ -17,7 +17,7 @@ addParameter(p,'txt',true)
 parse(p,output,savename,varargin{:})
 
 alpha = p.Results.alpha;
-showtext = p.Results.showtext
+showtext = p.Results.showtext;
 threshold = p.Results.threshold;
 bodytype = p.Results.BodyType;
 txt = p.Results.txt;
