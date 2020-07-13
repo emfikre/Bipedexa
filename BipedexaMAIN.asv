@@ -1,10 +1,10 @@
 % bipedexa MAIN
 
-auxdata.g = 10;
-auxdata.m=65;
-auxdata.lmax = 0.8;
-auxdata.T = 0.5;
-auxdata.D = 0.25;
+auxdata.g = 1;
+auxdata.m=50;
+auxdata.lmax = 1;
+auxdata.T = 0.1;
+auxdata.D = 0.5;
 auxdata.d = auxdata.D/2;
 auxdata.Fmax = 4*auxdata.g;
 auxdata.Taumax = 4*auxdata.g*auxdata.lmax;
