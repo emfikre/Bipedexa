@@ -73,15 +73,14 @@ bounds.eventgroup.lower = [0,0,0,0,0,0,0]; % row vector
 bounds.eventgroup.upper = [0,0,0,0,0,0,0]; % row vector
 
 % Path constraints (if required)
+% 1 normal (hip above ground)
 % 6 complementarity limb length constaints 
 % 2 complementarity exclusion constaints 
 
 % ----- PHASE 1 ----- %
 i = 1;
-bounds.phase(i).path.lower = zeros(1,8); % row vector, length = number of path constraints in phase
-
-
-bounds.phase(i).path.upper =[inf inf inf inf inf inf 0 0]; % row vector, length = number of path constraints in phase
+bounds.phase(i).path.lower = zeros(1,9); % row vector, length = number of path constraints in phase
+bounds.phase(i).path.upper =[0 inf inf inf inf inf inf 0 0]; % row vector, length = number of path constraints in phase
 %-------------------------------------------------------------------------%
 %---------------------------- Provide Guess ------------------------------%
 %-------------------------------------------------------------------------%
@@ -92,13 +91,13 @@ bounds.phase(i).path.upper =[inf inf inf inf inf inf 0 0]; % row vector, length 
 % guess.phase(i).control = rand(2,6);               % array, min numrows = 2, numcols = numcontrols
 % guess.phase(i).integral = rand;               % scalar
 if isempty(guess)
-i = 1;
-guess.phase(i).time    = [0;T];                % column vector, min length = 2
-guess.phase(i).state   = [0,lmax+r,D/T,0,pi/2,0,Fmax,0,Fmax,0,0,0,0,0; ...
-                          0,lmax+r,D/T,0,pi/2,0,0,Fmax,Fmax,0,0,0,Fmax*(T/2),0];                % array, min numrows = 2, numcols = numstates
-guess.phase(i).control = [-Fmax/T,Fmax/T,0,0,0,0,0.1*ones(1,8); ...
-                          -Fmax/T,Fmax/T,0,0,0,0,0.1*ones(1,8)];               % array, min numrows = 2, numcols = numcontrols
-guess.phase(i).integral = [1,0.1*T];
+    i = 1;
+    guess.phase(i).time    = [0;T];                % column vector, min length = 2
+    guess.phase(i).state   = [0,lmax+r,D/T,0,pi/2,0,Fmax,0,Fmax,0,0,0,0,0; ...
+        0,lmax+r,D/T,0,pi/2,0,0,Fmax,Fmax,0,0,0,Fmax*(T/2),0];                % array, min numrows = 2, numcols = numstates
+    guess.phase(i).control = [-Fmax/T,Fmax/T,0,0,0,0,0.1*ones(1,8); ...
+        -Fmax/T,Fmax/T,0,0,0,0,0.1*ones(1,8)];               % array, min numrows = 2, numcols = numcontrols
+    guess.phase(i).integral = [1,0.1*T];
 
 elseif isstruct(guess)
      % it's an output struct from a previous trial
@@ -117,7 +116,7 @@ end
 %-------------------------------------------------------------------------%
 %----------Provide Mesh Refinement Method and Initial Mesh ---------------%
 %-------------------------------------------------------------------------%
-setup.mesh.maxiterations=3;
+setup.mesh.maxiterations= auxdata.meshiter;
 setup.method= 'RPM-integration';
 
 % not required
@@ -131,7 +130,7 @@ setup.functions.endpoint          = @Endpoint;
 setup.auxdata                     = auxdata; % not necessary
 setup.bounds                      = bounds;
 setup.nlp.solver= 'snopt';
-setup.nlp.snoptoptions.maxiterations = 2000;
+setup.nlp.snoptoptions.maxiterations = auxdata.snoptiter;
 setup.guess                       = guess;
 
 setup.derivatives.derivativelevel = 'first';
@@ -256,6 +255,8 @@ phaseout.integrand = ...
 
 %%% Path constraints
 
+% Hips above ground; simply ltr(:,2).
+
 % Force activation limb length constraints
 Ftrllc= Ftr.*(lmax-magnitudeltr) - sLimbF(:,1);
 Fleadllc= Flead.*(lmax-magnitudellead) - sLimbF(:,2);
@@ -269,7 +270,7 @@ Taurefllc= Taurefsqr.*(lmax-magnitudelref) - sLimbTau(:,3);
 % Limb exclusion constraints
 Fxc=P.*Ftr - sExclF;
 Tauxc=Q.*Tautr - sExclTau;
-phaseout.path = [Ftrllc,Fleadllc,Frefllc,Tautrllc,Tauleadllc,Taurefllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
+phaseout.path = [ltr(:,2),Ftrllc,Fleadllc,Frefllc,Tautrllc,Tauleadllc,Taurefllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
 end
 
 function output = Endpoint(input)

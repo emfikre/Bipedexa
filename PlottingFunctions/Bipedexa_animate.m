@@ -60,8 +60,7 @@ lt = lmax; % for now, make the torso length equal to leg length. This allows eas
 m = [r/lt,1 - r/lt];
 F = abs(Fq./Fmax);
 threshold = threshold/Fmax; % as force is normalized to Fmax, normalize the threshold too
-Fr = auxdata.Fr;
-Uh = D*sqrt(Fr/lmax);
+Uh = D/T/sqrt(auxdata.g*lmax);
 c = auxdata.c;
 I = auxdata.I;
 
