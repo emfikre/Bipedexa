@@ -52,20 +52,22 @@ bounds.phase(i).finalstate.lower = [xupp,ylow,-Inf,-Inf,0,-Inf,Flow,Taulowfin,0,
 bounds.phase(i).finalstate.upper = [xupp,yupp,Inf,Inf,pi,Inf,Fuppfin,Tauuppfin,Fmax*T,Inf];             % row vector, length = numstates
 % 3 Time derivative of force controls
 % 3 time derivative of torque controls
+neg=[1 1 1]*(-Inf);
+pos= [1 1 1]*(Inf);
+bounds.phase(i).control.lower = [neg,neg];                % row vector, length = numstates
+bounds.phase(i).control.upper = [pos,pos];                % row vector, length = numstates
+
+% ???
+bounds.phase(i).integral.lower = [0,0];                 % row vector, length = numintegrals
+bounds.phase(i).integral.upper = [Inf,Inf];                 % row vector, length = numintegrals
+
+% Parameters
 % 3 relaxation parameters (leg length, Force)
 % 3 relaxation parameters (leg length, torque)
 % 1 relaxation paramter (leg exclusion, force)
 % 1 relaxation paramter (leg exclusion, torque)
-neg=[1 1 1]*(-Inf);
-pos= [1 1 1]*(Inf);
-bounds.phase(i).control.lower = [neg,neg,zeros(1,8)];                % row vector, length = numstates
-bounds.phase(i).control.upper = [pos,pos,Inf(1,8)];                % row vector, length = numstates
-% ???
-bounds.phase(i).integral.lower = [0,0];                 % row vector, length = numintegrals
-bounds.phase(i).integral.upper = [Inf,Inf];                 % row vector, length = numintegrals
-% no parameters introduced
-%bounds.parameter.lower = ;                      % row vector, length = numintegrals
-%bounds.parameter.upper = ;                      % row vector, length = numintegrals
+bounds.parameter.lower = zeros(1,8);                      % row vector, length = numintegrals
+bounds.parameter.upper = Inf(1,8);                      % row vector, length = numintegrals
 
 % Endpoint constraints (if required)
 
@@ -80,7 +82,7 @@ bounds.eventgroup.upper = [0,0,0,0,0,0,0]; % row vector
 % ----- PHASE 1 ----- %
 i = 1;
 bounds.phase(i).path.lower = zeros(1,9); % row vector, length = number of path constraints in phase
-bounds.phase(i).path.upper =[0 inf inf inf inf inf inf 0 0]; % row vector, length = number of path constraints in phase
+bounds.phase(i).path.upper =[Inf inf inf inf inf inf inf 0 0]; % row vector, length = number of path constraints in phase
 %-------------------------------------------------------------------------%
 %---------------------------- Provide Guess ------------------------------%
 %-------------------------------------------------------------------------%
@@ -93,12 +95,20 @@ bounds.phase(i).path.upper =[0 inf inf inf inf inf inf 0 0]; % row vector, lengt
 if isempty(guess)
     i = 1;
     guess.phase(i).time    = [0;T];                % column vector, min length = 2
-    guess.phase(i).state   = [0,lmax+r,D/T,0,pi/2,0,Fmax,0,Fmax,0,0,0,0,0; ...
-        0,lmax+r,D/T,0,pi/2,0,0,Fmax,Fmax,0,0,0,Fmax*(T/2),0];                % array, min numrows = 2, numcols = numstates
-    guess.phase(i).control = [-Fmax/T,Fmax/T,0,0,0,0,0.1*ones(1,8); ...
-        -Fmax/T,Fmax/T,0,0,0,0,0.1*ones(1,8)];               % array, min numrows = 2, numcols = numcontrols
+    guess.phase(i).state   = [0,lmax+r,D/T,0,pi/2,0,m/T/2,0,m/T/2,0,0,0,0,0; ...
+        0,lmax+r,D/T,0,pi/2,0,0,m/T/2,m/T/2,0,0,0,m/T/2*(T/2),0];                % array, min numrows = 2, numcols = numstates
+    guess.phase(i).control = [-m/T^2/2,m/T^2/2,0,0,0,0; ...
+                              -m/T^2/2,m/T^2/2,0,0,0,0];               % array, min numrows = 2, numcols = numcontrols
     guess.phase(i).integral = [1,0.1*T];
+    guess.parameter = zeros(1,8);
 
+elseif strcmpi(guess,'rand')
+    % i = 1;
+    % guess.phase(i).time    = [0;T];                % column vector, min length = 2
+    % guess.phase(i).state   = rand(2,14);                % array, min numrows = 2, numcols = numstates
+    % guess.phase(i).control = rand(2,6);               % array, min numrows = 2, numcols = numcontrols
+    % guess.phase(i).integral = rand;               % scalar
+    
 elseif isstruct(guess)
      % it's an output struct from a previous trial
     guess1 = guess;
@@ -106,7 +116,7 @@ elseif isstruct(guess)
     % pull out the guess
     guess.phase.time = guess1.result.solution.phase.time;
     guess.phase.state = guess1.result.solution.phase.state;
-    %guess.parameter = guess1.result.solution.parameter;
+    guess.parameter = guess1.result.solution.parameter;
     guess.phase.control = guess1.result.solution.phase.control;
     guess.phase.integral = guess1.result.solution.phase.integral;
 end
@@ -116,6 +126,7 @@ end
 %-------------------------------------------------------------------------%
 %----------Provide Mesh Refinement Method and Initial Mesh ---------------%
 %-------------------------------------------------------------------------%
+setup = auxdata.setup; % can input any setup parameters into this field. May be overwritten!
 setup.mesh.maxiterations= auxdata.meshiter;
 setup.method= 'RPM-integration';
 
@@ -149,6 +160,7 @@ function phaseout = Continuous(input)
 t = input.phase(1).time;
 X = input.phase(1).state;
 U = input.phase(1).control;
+Pa = input.phase(1).parameter;
 
 auxdata = input.auxdata;
 g= auxdata.g; %gravity
@@ -182,10 +194,10 @@ dF = U(:,1:3);
 dTau = U(:,4:6);
 
 % Collect relaxation parameters
-sLimbF   = U(:,7:9);
-sLimbTau = U(:,10:12);
-sExclF   = U(:,13);
-sExclTau = U(:,14);
+sLimbF   = Pa(:,1:3);
+sLimbTau = Pa(:,4:6);
+sExclF   = Pa(:,7);
+sExclTau = Pa(:,8);
 
 Ftr=F(:,1);
 Flead=F(:,2);
@@ -270,6 +282,7 @@ Taurefllc= Taurefsqr.*(lmax-magnitudelref) - sLimbTau(:,3);
 % Limb exclusion constraints
 Fxc=P.*Ftr - sExclF;
 Tauxc=Q.*Tautr - sExclTau;
+
 phaseout.path = [ltr(:,2),Ftrllc,Fleadllc,Frefllc,Tautrllc,Tauleadllc,Taurefllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
 end
 
@@ -305,5 +318,17 @@ output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (ybeg-yend) (xdotbeg-xdotend)
 J1 = input.phase.integral(1); % F^2+Tau^2 cost
 J2 = input.phase.integral(2); % relaxation penalties
 output.objective = J1+J2; % objective function (scalar)
+
+end
+
+function bounds = getBounds(type)
+
+switch lower(type)
+    case 'open'
+        
+        
+    case 'closed'
+
+end
 
 end
