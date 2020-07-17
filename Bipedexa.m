@@ -261,10 +261,10 @@ phaseout.dynamics = [xdot,ydot,xddot,yddot,thetadot,thetaddot,Fdot,Taudot,Pdot,Q
 % amplification of various terms
 
 % First column: Main cost
-% Second column: relaxation parameter penalties
+% Second column: force and torque rate penalty
 phaseout.integrand = ...
     [c(1)*(Ftr.^2+Fref.^2+Flead.^2)+c(2)*(Tautr.^2+Tauref.^2+Taulead.^2), ...
-     c(3)*sum(sLimbF,2) + c(4)*sum(sLimbTau,2) + c(5)*sExclF + c(6)*sExclTau]; 
+     c(3)*sum(dF.^2,2) + c(4)*sum(dTau.^2,2)]; 
 
 %%% Path constraints
 
@@ -288,6 +288,13 @@ phaseout.path = [ltr(:,2),Ftrllc,Fleadllc,Frefllc,Tautrllc,Tauleadllc,Taurefllc,
 end
 
 function output = Endpoint(input)
+
+c = input.auxdata.c;
+Pa = input.parameter;
+sLimbF = Pa(1:3);
+sLimbTau = Pa(4:6);
+sExclF   = Pa(7);
+sExclTau = Pa(8);
 
 Finalstates =input.phase(1).finalstate;
 Initialstates= input.phase(1).initialstate;
@@ -317,8 +324,9 @@ omegaend=Finalstates(6);
 output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (ybeg-yend) (xdotbeg-xdotend) (ydotbeg-ydotend) (thetabeg-thetaend) (omegabeg-omegaend)];% event constraints (row vector)
 
 J1 = input.phase.integral(1); % F^2+Tau^2 cost
-J2 = input.phase.integral(2); % relaxation penalties
-output.objective = J1+J2; % objective function (scalar)
+J2 = input.phase.integral(2); % Force rate penalty
+J3 = c(5)*sum(sLimbF,2) + c(6)*sum(sLimbTau,2) + c(7)*sExclF + c(8)*sExclTau; % relaxation penalties
+output.objective = J1+J2+J3; % objective function (scalar)
 
 end
 
