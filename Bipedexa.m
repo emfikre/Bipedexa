@@ -103,12 +103,13 @@ if isempty(guess)
     guess.parameter = zeros(1,8);
 
 elseif strcmpi(guess,'rand')
-    % i = 1;
-    % guess.phase(i).time    = [0;T];                % column vector, min length = 2
-    % guess.phase(i).state   = rand(2,14);                % array, min numrows = 2, numcols = numstates
-    % guess.phase(i).control = rand(2,6);               % array, min numrows = 2, numcols = numcontrols
-    % guess.phase(i).integral = rand;               % scalar
-    
+    i = 1;
+    guess = struct;
+    guess.phase(i).time    = [0;T];                % column vector, min length = 2
+    guess.phase(i).state   = rand(2,14);                % array, min numrows = 2, numcols = numstates
+    guess.phase(i).control = rand(2,6);               % array, min numrows = 2, numcols = numcontrols
+    guess.phase(i).integral = rand(1,2);               % scalar
+    guess.parameter = rand(1,8);
 elseif isstruct(guess)
      % it's an output struct from a previous trial
     guess1 = guess;

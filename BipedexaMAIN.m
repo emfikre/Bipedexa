@@ -11,7 +11,7 @@ auxdata.Taumax = 4*auxdata.m*auxdata.g*auxdata.lmax;
 auxdata.r = 0.5*auxdata.lmax;
 auxdata.I = auxdata.m*auxdata.g*auxdata.r^2;
 
-guess=[];
+guess='rand';
 auxdata.setup.mesh.tolerance = 1e-3;
 auxdata.snoptiter = 500;
 auxdata.meshiter = 2;
@@ -29,7 +29,7 @@ plotStates(out(2))
 
 guess3 = out(2);
 auxdata.setup.mesh.tolerance = 1e-4;
-auxdata.snoptiter = 2000;
+auxdata.snoptiter = 1500;
 auxdata.meshiter = 4;
 auxdata.c = [1,100,100,100,1,1];
 out(3) = Bipedexa(auxdata,guess3);
@@ -39,9 +39,9 @@ if out(3).result.maxerror > out(3).result.setup.mesh.tolerance || out(3).result.
     % hasn't converged; try again
    guess4 = out(3);
    auxdata.meshiter = 8;
-   auxdata.snoptiter = 3000;
+   auxdata.snoptiter = 2000;
    out(4) = Bipedexa(auxdata,guess4); 
-   plotStates(out4)
+   plotStates(out(4))
 end
 %% 
 close all
