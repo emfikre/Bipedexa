@@ -43,6 +43,8 @@ if out(3).result.maxerror > out(3).result.setup.mesh.tolerance || out(3).result.
    out(4) = Bipedexa(auxdata,guess4); 
    plotStates(out(4))
 end
-%% 
-close all
-Bipedexa_animate(out(end),'20200716sim2')
+fname = [date_prefix('yyyymmddHHMM'),'_sim'];
+%% Animate the solution
+Bipedexa_animate(out(end),fname)
+%% Save the workspace
+save(fname)
