@@ -239,7 +239,7 @@ ultr=ltr./magnitudeltr;
 ullead=llead./magnitudellead;
 ulref =lref./magnitudelref;
 
-Ftrvec= Ftr.*ultr;
+Ftrvec = Ftr.*ultr;
 Fleadvec = Flead.*ullead;
 Frefvec = Fref.*ulref;
 
@@ -250,8 +250,8 @@ crossFleadz=crossFlead(:,3); %Extracting z column
 crossFref=cross(rvec,Frefvec);
 crossFrefz=crossFref(:,3); %Extracting z column
 
-xddot= (Ftr/m).*(x./magnitudeltr)+(Fref/m).*((x-dveccol)./magnitudelref)+(Flead/m).*((x-Dveccol)./magnitudellead);
-yddot= (Ftr/m).*(y./magnitudeltr)+(Fref/m).*(y./magnitudelref)+(Flead/m).*(y./magnitudellead)-g;
+xddot= (Ftrvec(:,1)+Fleadvec(:,1)+Frefvec(:,1))/m;
+yddot= (Ftrvec(:,2)+Fleadvec(:,2)+Frefvec(:,2))/m-g;
 thetaddot=(Tautr+Taulead+Tauref+crossFtrz+crossFleadz+crossFrefz)/I;
 
 phaseout.dynamics = [xdot,ydot,xddot,yddot,thetadot,thetaddot,Fdot,Taudot,Pdot,Qdot];
