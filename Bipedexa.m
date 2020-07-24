@@ -50,6 +50,7 @@ if isempty(guess)
     guess.parameter = zeros(1,8);
 
 elseif strcmpi(guess,'rand')
+    rng('shuffle')
     i = 1;
     guess = struct;
     guess.phase(i).time    = [0;T];                % column vector, min length = 2
@@ -227,7 +228,7 @@ refllc= (Fref+Taurefsqr).*(lmax-magnitudelref) - sLimbF(:,3);
 
 % Limb exclusion constraints
 Fxc=P.*Ftr - sExclF;
-Tauxc=Q.*Tautr - sExclTau;
+Tauxc= Q.*Tautr - sExclTau;
 
 phaseout.path = [ltr(:,2),trllc,leadllc,refllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
 end
