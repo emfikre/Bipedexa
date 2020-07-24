@@ -2,8 +2,8 @@
 close all
 auxdata.g = 1;
 auxdata.lmax = 1;
-auxdata.T = 1.5;
-auxdata.D = 0.6;
+auxdata.T = 1.25;
+auxdata.D = 0.75;
 auxdata.m = 1;
 auxdata.d = auxdata.D/2;
 auxdata.Fmax = 4*auxdata.m*auxdata.g;
@@ -50,4 +50,4 @@ fname = [date_prefix('yyyymmddHHMM'),'_sim'];
 %% Animate the solution
 Bipedexa_animate(out(end),fname)
 %% Save the workspace
-save(fname)
+save(fname,'out*','auxdata')
