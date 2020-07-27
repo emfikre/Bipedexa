@@ -216,20 +216,20 @@ phaseout.integrand = ...
 % Hips above ground; simply ltr(:,2).
 
 % Force activation limb length constraints
-Ftrllc= Ftr.*(lmax-magnitudeltr) - sLimbF(:,1);
-Fleadllc= Flead.*(lmax-magnitudellead) - sLimbF(:,2);
-Frefllc= Fref.*(lmax-magnitudelref) - sLimbF(:,3);
+trllc= (Ftr+Tautrsqr).*(lmax-magnitudeltr) - sLimbF(:,1);
+leadllc= (Flead+Tauleadsqr).*(lmax-magnitudellead) - sLimbF(:,2);
+refllc= (Fref+Taurefsqr).*(lmax-magnitudelref) - sLimbF(:,3);
 
 % Torque activation limb length constraints
-Tautrllc= Tautrsqr.*(lmax-magnitudeltr) - sLimbTau(:,1);
-Tauleadllc=Tauleadsqr.*(lmax-magnitudellead) - sLimbTau(:,2);
-Taurefllc= Taurefsqr.*(lmax-magnitudelref) - sLimbTau(:,3);
+% Tautrllc= Tautrsqr.*(lmax-magnitudeltr) - sLimbTau(:,1);
+% Tauleadllc=Tauleadsqr.*(lmax-magnitudellead) - sLimbTau(:,2);
+% Taurefllc= Taurefsqr.*(lmax-magnitudelref) - sLimbTau(:,3);
 
 % Limb exclusion constraints
 Fxc=P.*Ftr - sExclF;
 Tauxc=Q.*Tautr - sExclTau;
 
-phaseout.path = [ltr(:,2),Ftrllc,Fleadllc,Frefllc,Tautrllc,Tauleadllc,Taurefllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
+phaseout.path = [ltr(:,2),trllc,leadllc,refllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
 end
 
 function output = Endpoint(input)
@@ -304,8 +304,8 @@ bounds.eventgroup.upper = [0,0,0,0,0,0,0]; % row vector
 
 % ----- PHASE 1 ----- %
 i = 1;
-bounds.phase(i).path.lower = zeros(1,9); % row vector, length = number of path constraints in phase
-bounds.phase(i).path.upper =[Inf inf inf inf inf inf inf 0 0]; % row vector, length = number of path constraints in phase
+bounds.phase(i).path.lower = zeros(1,6); % row vector, length = number of path constraints in phase
+bounds.phase(i).path.upper =[Inf inf inf inf 0 0]; % row vector, length = number of path constraints in phase
 
 switch lower(type)
     case 'open'
