@@ -33,4 +33,4 @@ simplify(ldot-ldot_paper) % should be zero
 %% create function to calculate ldot and phidot at once
 % using one function instead of two saves some computational time
 
-matlabFunction([phidot,ldot],'File','phidot_ldot_fun','vars',{[x y u v o w],r_c,P});
+matlabFunction(phidot,ldot,'File','phidot_ldot_fun','vars',{[x y u v o w],r_c,P});

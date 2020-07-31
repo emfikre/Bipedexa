@@ -1,4 +1,4 @@
-function Bipedexa_animate(output,savename,varargin)
+function Biped_animate(output,savename,varargin)
 % Makes a 4-second animation of the result
 % Requires patchline:
 % http://www.mathworks.com/matlabcentral/fileexchange/36953-patchline/content/patchline.m
