@@ -1,4 +1,4 @@
-function output = Bipedexa(auxdata,guess)
+function output = BipedWork(auxdata,guess)
 
 %-------------------------------------------------------------------%
 %-------------------- Data Required by Problem ---------------------%
@@ -15,7 +15,7 @@ T=auxdata.T;
 m=auxdata.m;
 
 % specify auxdata if not already done
-if ~isfield(auxdata,'scaling') 
+if ~isfield(auxdata,'scaling')
     auxdata.scaling = 'none';
 end
 
@@ -27,7 +27,7 @@ end
 if strcmpi(auxdata.scaling,'none')
     bounds = getBounds('open',auxdata);
 else
-    bounds = getBounds('closed',auxdata); 
+    bounds = getBounds('closed',auxdata);
 end
 
 %-------------------------------------------------------------------------%
@@ -45,10 +45,10 @@ if isempty(guess)
     guess.phase(i).state   = [0,lmax+r,D/T,0,pi/2,0,m/T/2,0,m/T/2,0,0,0,0,0; ...
         0,lmax+r,D/T,0,pi/2,0,0,m/T/2,m/T/2,0,0,0,m/T/2*(T/2),0];                % array, min numrows = 2, numcols = numstates
     guess.phase(i).control = [-m/T^2/2,m/T^2/2,0,0,0,0; ...
-                              -m/T^2/2,m/T^2/2,0,0,0,0];               % array, min numrows = 2, numcols = numcontrols
+        -m/T^2/2,m/T^2/2,0,0,0,0];               % array, min numrows = 2, numcols = numcontrols
     guess.phase(i).integral = [1,0.1*T];
     guess.parameter = zeros(1,8);
-
+    
 elseif strcmpi(guess,'rand')
     rng('shuffle')
     i = 1;
@@ -59,7 +59,7 @@ elseif strcmpi(guess,'rand')
     guess.phase(i).integral = rand(1,2);               % scalar
     guess.parameter = rand(1,8);
 elseif isstruct(guess)
-     % it's an output struct from a previous trial
+    % it's an output struct from a previous trial
     guess1 = guess;
     guess = [];
     % pull out the guess
@@ -84,7 +84,7 @@ setup.method= 'RPM-integration';
 %-------------------------------------------------------------------%
 %--------------------------- Problem Setup -------------------------%
 %-------------------------------------------------------------------%
-setup.name                        = 'bipedalprob';
+setup.name                        = 'BipedWork';
 setup.functions.continuous        = @Continuous;
 setup.functions.endpoint          = @Endpoint;
 setup.auxdata                     = auxdata; % not necessary
@@ -134,7 +134,7 @@ theta=X(:,5);
 xdot = X(:,3); % provide derivative
 ydot = X(:,4);
 thetadot=X(:,6);
-F=X(:,7:9); %Collecting Forces 
+F=X(:,7:9); %Collecting Forces
 Tau=X(:,10:12); %Collecting Torques
 P= X(:,13);
 Q= X(:,14);
@@ -143,11 +143,18 @@ Q= X(:,14);
 dF = U(:,1:3);
 dTau = U(:,4:6);
 
+% Collect slack variables
+p_ax = U(:,7:9);
+q_ax = U(:,10:12);
+p_rot = U(:,13:15);
+q_rot = U(:,16:18);
+
 % Collect relaxation parameters
 sLimbF   = Pa(:,1:3);
-sLimbTau = Pa(:,4:6);
-sExclF   = Pa(:,7);
-sExclTau = Pa(:,8);
+sExclF   = Pa(:,4);
+sExclTau = Pa(:,5);
+spq_ax = Pa(:,6:8);
+spq_rot = Pa(:,9:11);
 
 Ftr=F(:,1);
 Flead=F(:,2);
@@ -159,7 +166,7 @@ Tautrsqr=Tautr.^2;
 Tauleadsqr=Taulead.^2;
 Taurefsqr=Tauref.^2;
 
-Fdot=dF; 
+Fdot=dF;
 Taudot=dTau;
 
 Pdot= Flead;
@@ -190,9 +197,9 @@ Fleadvec = Flead.*ullead;
 Frefvec = Fref.*ulref;
 
 crossFtr=cross(rvec,Ftrvec);
-crossFtrz=crossFtr(:,3);  %Extracting z column 
+crossFtrz=crossFtr(:,3);  %Extracting z column
 crossFlead=cross(rvec,Fleadvec);
-crossFleadz=crossFlead(:,3); %Extracting z column 
+crossFleadz=crossFlead(:,3); %Extracting z column
 crossFref=cross(rvec,Frefvec);
 crossFrefz=crossFref(:,3); %Extracting z column
 
@@ -203,49 +210,69 @@ thetaddot=(Tautr+Taulead+Tauref+crossFtrz+crossFleadz+crossFrefz)/I;
 phaseout.dynamics = [xdot,ydot,xddot,yddot,thetadot,thetaddot,Fdot,Taudot,Pdot,Qdot];
 
 
+% compute velocities relevant to work for each leg
+
+[phidot_tr,ldot_tr] = phidotfun(X(:,1:6),r_c,0);
+[phidot_lead, ldot_lead] = phidotfun(X(:,1:6),r_c,D);
+[phidot_ref, ldot_ref] = phidotfun(X(:,1:6),r_c,d);
+
+% Compute rotational power for each leg
+Prot_tr = Tautr.*phidot_tr;
+Prot_lead = Taulead.*phidot_lead;
+Prot_ref = Tauref.*phidot_ref;
+
+% Compute axial power for each leg
+Pax_tr = Ftr.*ldot_tr;
+Pax_lead = Flead.*ldot_lead;
+Pax_ref = Fref.*ldot_ref;
+
 % the vector c contains scaling parameters, specifying the relative
 % amplification of various terms
 
-% First column: Main cost
+% First column: Positive and negative power
 % Second column: force and torque rate penalty
 phaseout.integrand = ...
-    [c(1)*(Ftr.^2+Fref.^2+Flead.^2)+c(2)*(Tautr.^2+Tauref.^2+Taulead.^2), ...
-     c(3)*sum(dF.^2,2) + c(4)*sum(dTau.^2,2)]; 
+    [c(1)*(sum(p_ax,2) + sum(p_rot,2))+c(2)*(sum(q_ax,2) + sum(q_rot,2)),
+    c(3)*sum(dF.^2,2) + c(4)*sum(dTau.^2,2)];
 
 %%% Path constraints
 
 % Hips above ground; simply ltr(:,2).
 
-% Force activation limb length constraints
+% Force and torque activation limb length constraints
 trllc= (Ftr+Tautrsqr).*(lmax-magnitudeltr) - sLimbF(:,1);
 leadllc= (Flead+Tauleadsqr).*(lmax-magnitudellead) - sLimbF(:,2);
 refllc= (Fref+Taurefsqr).*(lmax-magnitudelref) - sLimbF(:,3);
-
-% Torque activation limb length constraints
-% Tautrllc= Tautrsqr.*(lmax-magnitudeltr) - sLimbTau(:,1);
-% Tauleadllc=Tauleadsqr.*(lmax-magnitudellead) - sLimbTau(:,2);
-% Taurefllc= Taurefsqr.*(lmax-magnitudelref) - sLimbTau(:,3);
 
 % Limb exclusion constraints
 Fxc=P.*Ftr - sExclF;
 Tauxc= Q.*Tautr - sExclTau;
 
-phaseout.path = [ltr(:,2),trllc,leadllc,refllc,Fxc,Tauxc]; % path constraints, matrix of size num collocation points X num path constraints
+% Axial power -> p-q
+Pax2slacks = [Pax_tr,Pax_lead,Pax_ref] - p_ax + q_ax;
+Prot2slacks = [Prot_tr,Prot_lead,Prot_ref] - p_rot + q_rot;
+
+% pq complementarity
+pq_ax = p_ax.*q_ax - spq_ax;
+pq_rot = p_rot.*q_rot - spq_rot;
+
+phaseout.path = [ltr(:,2),trllc,leadllc,refllc,Fxc,Tauxc,Pax2slacks,Prot2slacks,pq_ax,pq_rot]; % path constraints, matrix of size num collocation points X num path constraints
 end
 
 function output = Endpoint(input)
 
 c = input.auxdata.c;
 Pa = input.parameter;
-sLimbF = Pa(1:3);
-sLimbTau = Pa(4:6);
-sExclF   = Pa(7);
-sExclTau = Pa(8);
+sLimb = Pa(1:3);
+sExclF   = Pa(4);
+sExclTau = Pa(5);
+spq_ax = Pa(6:8);
+spq_rot = Pa(9:11);
 
 Finalstates =input.phase(1).finalstate;
 Initialstates= input.phase(1).initialstate;
 
-Ftr=Initialstates(7); 
+Ftr=Initialstates(7);
 Flead=Finalstates(8);
 
 Ttr=Initialstates(10);
@@ -269,9 +296,9 @@ omegaend=Finalstates(6);
 
 output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (ybeg-yend) (xdotbeg-xdotend) (ydotbeg-ydotend) (thetabeg-thetaend) (omegabeg-omegaend)];% event constraints (row vector)
 
-J1 = input.phase.integral(1); % F^2+Tau^2 cost
+J1 = input.phase.integral(1); % Work cost
 J2 = input.phase.integral(2); % Force rate penalty
-J3 = c(5)*sum(sLimbF,2) + c(6)*sum(sLimbTau,2) + c(7)*sExclF + c(8)*sExclTau; % relaxation penalties
+J3 = c(5)*sum(sLimb,2) + c(6)*sExclF + c(7)*sExclTau + c(8)*spq_ax + c(9)*spq_rot; % relaxation penalties
 output.objective = J1+J2+J3; % objective function (scalar)
 
 end
@@ -300,13 +327,16 @@ bounds.eventgroup.upper = [0,0,0,0,0,0,0]; % row vector
 
 % Path constraints (if required)
 % 1 normal (hip above ground)
-% 6 complementarity limb length constaints 
-% 2 complementarity exclusion constaints 
+% 3 complementarity limb length constaints
+% 2 complementarity equality exclusion constaints
+% 3 regular equality constraints (Axial power -> p-q)
+% 3 regular equality constraints (Rot power -> p-q)
+% 6 complementarity pq equality contraints
 
 % ----- PHASE 1 ----- %
 i = 1;
-bounds.phase(i).path.lower = zeros(1,6); % row vector, length = number of path constraints in phase
-bounds.phase(i).path.upper =[Inf inf inf inf 0 0]; % row vector, length = number of path constraints in phase
+bounds.phase(i).path.lower = zeros(1,18); % row vector, length = number of path constraints in phase
+bounds.phase(i).path.upper =[Inf inf inf inf zeros(1,14)]; % row vector, length = number of path constraints in phase
 
 switch lower(type)
     case 'open'
@@ -342,22 +372,28 @@ switch lower(type)
         Qupp = Taumax^2*T;
         
         % 3 Time derivative of force controls
-% 3 time derivative of torque controls
-dFneg=[1 1 1]*(-Inf);
-dFpos= [1 1 1]*(Inf);
-dTauneg = [1 1 1]*(-Inf);
-dTaupos = [1 1 1]*(Inf);
-
-% Integrals (cost)
-[J1upp,J2upp] = deal(Inf);
-
-% Parameters
-% 3 relaxation parameters (leg length, Force)
-% 3 relaxation parameters (leg length, torque)
-% 1 relaxation paramter (leg exclusion, force)
-% 1 relaxation paramter (leg exclusion, torque)
-supp = Inf(1,8);                      % row vector, length = numintegrals
-
+        % 3 time derivative of torque controls
+        % 6 slack variables for positive and negative axial power
+        % 6 slack variables for positive and negative rotational power
+        
+        dFneg=[1 1 1]*(-Inf);
+        dFpos= [1 1 1]*(Inf);
+        dTauneg = [1 1 1]*(-Inf);
+        dTaupos = [1 1 1]*(Inf);
+        slacks_low = zeros(1,12); % slack variables always have a lower bound of zero
+        pq_ax_upp = Inf; % The highest possible axial power is maximal force at maximal leg length change
+        pq_rot_upp = Inf; % The highest possible axial power is maximal force at maximal leg length change
+        
+        % Integrals (cost)
+        [J1upp,J2upp] = deal(Inf);
+        
+        % Parameters
+        % 3 relaxation parameters (leg length)
+        % 1 relaxation paramter (leg exclusion, force)
+        % 1 relaxation paramter (leg exclusion, torque)
+        % 6 relaxation parameters (pq complementarity)
+        supp = Inf(1,11);                      % row vector, length = numintegrals
+        
         
     case 'closed'
         %States
@@ -396,23 +432,30 @@ supp = Inf(1,8);                      % row vector, length = numintegrals
         
         % 3 Time derivative of force controls
         % 3 time derivative of torque controls
+        % 6 slack variables for positive and negative axial power
+        % 6 slack variables for positive and negative rotational power
+        
         dFneg=[1 1 1]*(-100*Fmax);
         dFpos= [1 1 1]*(100*Fmax);
         dTauneg = [1 1 1]*(-100*Taumax);
         dTaupos = [1 1 1]*(100*Taumax);
+        slacks_low = zeros(1,12); % slack variables always have a lower bound of zero
+        [phidot_max,ldot_max] = phidot_ldot_fun([0,lmax+r,uupp,vupp,pi/2,wupp],r,d);
+        pq_ax_upp = Fmax.*ldot_max*ones(1,6); % The highest possible axial power is maximal force at maximal leg length change
+        pq_rot_upp = Taumax.*phidot_max*ones(1,6); % The highest possible axial power is maximal force at maximal leg length change
         
         % Integrals (cost)
-        J1upp = c(1)*sum(Fmax.^2,2)*T + c(2)*sum(Taumax.^2,2)*T;
+        J1upp = c(1)*( sum( pq_ax_upp(1:3) ) + sum( pq_rot_upp(1:3) ) )*T + ...
+            c(2)*( sum( pq_ax_upp(4:6) ) + sum( pq_rot_upp(4:6) ) )*T;
         J2upp = c(3)*sum(dFpos.^2,2)*T + c(4)*sum(dTaupos.^2,2)*T;
         
         % Parameters
-        % 3 relaxation parameters (leg length, Force)
-        % 3 relaxation parameters (leg length, torque)
-        % 1 relaxation paramter (leg exclusion, force)
-        % 1 relaxation paramter (leg exclusion, torque)
-        supp = 1*ones(1,8);                      % row vector, length = numintegrals
-
+        % 3 relaxation parameters (leg length)
+        % 1 relaxation parameter (leg exclusion, force)
+        % 1 relaxation parameter (leg exclusion, torque)
+        % 6 relaxation parameters (pq complementarity)
         
+        supp = 1*ones(1,11);                      % row vector, length = numintegrals
 end
 
 bounds.phase(i).initialstate.lower =    [xlow,ylow,ulow,vlow,thetalow,wlow,Flow   ,Taulowini,Plow,Qlow];           % row vector, length = numstates
@@ -422,13 +465,13 @@ bounds.phase(i).state.upper =           [xupp,yupp,uupp,vupp,thetaupp,wupp,Fupp 
 bounds.phase(i).finalstate.lower =      [xupp,ylow,ulow,vlow,thetalow,wlow,Flow   ,Taulowfin,Plow,Qlow];             % row vector, length = numstates
 bounds.phase(i).finalstate.upper =      [xupp,yupp,uupp,vupp,thetaupp,wupp,Fuppfin,Tauuppfin,Pupp,Qupp];             % row vector, length = numstates
 
-bounds.phase(i).control.lower = [dFneg,dTauneg];                % row vector, length = numstates
-bounds.phase(i).control.upper = [dFpos,dTaupos];                % row vector, length = numstates
+bounds.phase(i).control.lower = [dFneg,dTauneg,slacks_low];                % row vector, length = numcontrols
+bounds.phase(i).control.upper = [dFpos,dTaupos,pq_ax_upp,pq_rot_upp];                % row vector, length = numcontrols
 
 bounds.phase(i).integral.lower = [0,0];                 % row vector, length = numintegrals
 bounds.phase(i).integral.upper = [J1upp,J2upp];
 
-bounds.parameter.lower = zeros(1,8);                      % row vector, length = numintegrals
+bounds.parameter.lower = zeros(1,14);                      % row vector, length = numintegrals
 bounds.parameter.upper = supp;
 
 end
