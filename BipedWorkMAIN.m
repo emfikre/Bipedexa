@@ -20,7 +20,7 @@ guess='rand';
 auxdata.setup.mesh.tolerance = 1e-3;
 auxdata.snoptiter = 500;
 auxdata.meshiter = 2;
-auxdata.c = [1,0,dFpen(1),dTaupen(1),0,0,0,0,0];
+auxdata.c = [1,0,dFpen(1),dTaupen(1),0,0,0,0,0,0];
 out = BipedWork(auxdata,guess);
 plotStates(out)
 %%
@@ -30,7 +30,7 @@ guess2 = out;
 auxdata.setup.mesh.tolerance = 1e-4;
 auxdata.snoptiter = 1000;
 auxdata.meshiter = 3;
-auxdata.c = [1,0,dFpen(2),dTaupen(2),10,10,10,1,1];
+auxdata.c = [1,0,dFpen(2),dTaupen(2),10,10,10,10,1,1];
 out(2) = BipedWork(auxdata,guess2);
 plotStates(out(2))
 %%
@@ -38,7 +38,7 @@ guess3 = out(2);
 auxdata.setup.mesh.tolerance = 1e-4;
 auxdata.snoptiter = 1500;
 auxdata.meshiter = 4;
-auxdata.c = [1,0,dFpen(3),dTaupen(3),100,100,100,100,100];
+auxdata.c = [1,0,dFpen(3),dTaupen(3),100,100,100,100,100,100];
 out(3) = BipedWork(auxdata,guess3);
 plotStates(out(3))
 %%

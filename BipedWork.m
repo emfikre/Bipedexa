@@ -240,9 +240,9 @@ phaseout.integrand = ...
 % Hips above ground; simply ltr(:,2).
 
 % Force and torque activation limb length constraints
-trllc= (Ftr+Tautrsqr).*(lmax-magnitudeltr) - sLimb(:,1);
-leadllc= (Flead+Tauleadsqr).*(lmax-magnitudellead) - sLimb(:,2);
-refllc= (Fref+Taurefsqr).*(lmax-magnitudelref) - sLimb(:,3);
+trllc= (Ftr+c(5)*Tautrsqr).*(lmax-magnitudeltr) - sLimb(:,1);
+leadllc= (Flead+c(5)*Tauleadsqr).*(lmax-magnitudellead) - sLimb(:,2);
+refllc= (Fref+c(5)*Taurefsqr).*(lmax-magnitudelref) - sLimb(:,3);
 
 % Limb exclusion constraints
 Fxc=P.*Ftr - sExclF;
@@ -298,7 +298,7 @@ output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (ybeg-yend) (xdotbeg-xdotend)
 
 J1 = input.phase.integral(1); % Work cost
 J2 = input.phase.integral(2); % Force rate penalty
-J3 = c(5)*sum(sLimb,2) + c(6)*sExclF + c(7)*sExclTau + c(8)*sum(spq_ax,2) + c(9)*sum(spq_rot,2); % relaxation penalties
+J3 = c(6)*sum(sLimb,2) + c(7)*sExclF + c(8)*sExclTau + c(9)*sum(spq_ax,2) + c(10)*sum(spq_rot,2); % relaxation penalties
 output.objective = J1+J2+J3; % objective function (scalar)
 
 end
