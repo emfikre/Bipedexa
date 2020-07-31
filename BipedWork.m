@@ -44,10 +44,10 @@ if isempty(guess)
     guess.phase(i).time    = [0;T];                % column vector, min length = 2
     guess.phase(i).state   = [0,lmax+r,D/T,0,pi/2,0,m/T/2,0,m/T/2,0,0,0,0,0; ...
         0,lmax+r,D/T,0,pi/2,0,0,m/T/2,m/T/2,0,0,0,m/T/2*(T/2),0];                % array, min numrows = 2, numcols = numstates
-    guess.phase(i).control = [-m/T^2/2,m/T^2/2,0,0,0,0; ...
-        -m/T^2/2,m/T^2/2,0,0,0,0];               % array, min numrows = 2, numcols = numcontrols
+    guess.phase(i).control = [-m/T^2/2,m/T^2/2,0,0,0,0,zeros(1,12); ...
+        -m/T^2/2,m/T^2/2,0,0,0,0,zeros(1,12)];               % array, min numrows = 2, numcols = numcontrols
     guess.phase(i).integral = [1,0.1*T];
-    guess.parameter = zeros(1,8);
+    guess.parameter = zeros(1,11);
     
 elseif strcmpi(guess,'rand')
     rng('shuffle')
@@ -55,9 +55,9 @@ elseif strcmpi(guess,'rand')
     guess = struct;
     guess.phase(i).time    = [0;T];                % column vector, min length = 2
     guess.phase(i).state   = rand(2,14);                % array, min numrows = 2, numcols = numstates
-    guess.phase(i).control = rand(2,6);               % array, min numrows = 2, numcols = numcontrols
+    guess.phase(i).control = rand(2,18);               % array, min numrows = 2, numcols = numcontrols
     guess.phase(i).integral = rand(1,2);               % scalar
-    guess.parameter = rand(1,8);
+    guess.parameter = rand(1,11);
 elseif isstruct(guess)
     % it's an output struct from a previous trial
     guess1 = guess;
@@ -150,7 +150,7 @@ p_rot = U(:,13:15);
 q_rot = U(:,16:18);
 
 % Collect relaxation parameters
-sLimbF   = Pa(:,1:3);
+sLimb   = Pa(:,1:3);
 sExclF   = Pa(:,4);
 sExclTau = Pa(:,5);
 spq_ax = Pa(:,6:8);
@@ -212,9 +212,9 @@ phaseout.dynamics = [xdot,ydot,xddot,yddot,thetadot,thetaddot,Fdot,Taudot,Pdot,Q
 
 % compute velocities relevant to work for each leg
 
-[phidot_tr,ldot_tr] = phidotfun(X(:,1:6),r_c,0);
-[phidot_lead, ldot_lead] = phidotfun(X(:,1:6),r_c,D);
-[phidot_ref, ldot_ref] = phidotfun(X(:,1:6),r_c,d);
+[phidot_tr,ldot_tr] = phidot_ldot_fun(X(:,1:6),r,0);
+[phidot_lead, ldot_lead] = phidot_ldot_fun(X(:,1:6),r,D);
+[phidot_ref, ldot_ref] = phidot_ldot_fun(X(:,1:6),r,d);
 
 % Compute rotational power for each leg
 Prot_tr = Tautr.*phidot_tr;
@@ -232,7 +232,7 @@ Pax_ref = Fref.*ldot_ref;
 % First column: Positive and negative power
 % Second column: force and torque rate penalty
 phaseout.integrand = ...
-    [c(1)*(sum(p_ax,2) + sum(p_rot,2))+c(2)*(sum(q_ax,2) + sum(q_rot,2)),
+    [c(1)*(sum(p_ax,2) + sum(p_rot,2))+c(2)*(sum(q_ax,2) + sum(q_rot,2)),...
     c(3)*sum(dF.^2,2) + c(4)*sum(dTau.^2,2)];
 
 %%% Path constraints
@@ -240,9 +240,9 @@ phaseout.integrand = ...
 % Hips above ground; simply ltr(:,2).
 
 % Force and torque activation limb length constraints
-trllc= (Ftr+Tautrsqr).*(lmax-magnitudeltr) - sLimbF(:,1);
-leadllc= (Flead+Tauleadsqr).*(lmax-magnitudellead) - sLimbF(:,2);
-refllc= (Fref+Taurefsqr).*(lmax-magnitudelref) - sLimbF(:,3);
+trllc= (Ftr+Tautrsqr).*(lmax-magnitudeltr) - sLimb(:,1);
+leadllc= (Flead+Tauleadsqr).*(lmax-magnitudellead) - sLimb(:,2);
+refllc= (Fref+Taurefsqr).*(lmax-magnitudelref) - sLimb(:,3);
 
 % Limb exclusion constraints
 Fxc=P.*Ftr - sExclF;
@@ -298,7 +298,7 @@ output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (ybeg-yend) (xdotbeg-xdotend)
 
 J1 = input.phase.integral(1); % Work cost
 J2 = input.phase.integral(2); % Force rate penalty
-J3 = c(5)*sum(sLimb,2) + c(6)*sExclF + c(7)*sExclTau + c(8)*spq_ax + c(9)*spq_rot; % relaxation penalties
+J3 = c(5)*sum(sLimb,2) + c(6)*sExclF + c(7)*sExclTau + c(8)*sum(spq_ax,2) + c(9)*sum(spq_rot,2); % relaxation penalties
 output.objective = J1+J2+J3; % objective function (scalar)
 
 end
@@ -307,6 +307,7 @@ function bounds = getBounds(type,auxdata)
 
 lmax = auxdata.lmax;
 D = auxdata.D;
+d = auxdata.d;
 T = auxdata.T;
 Fmax = auxdata.Fmax;
 Taumax = auxdata.Taumax;
@@ -381,8 +382,8 @@ switch lower(type)
         dTauneg = [1 1 1]*(-Inf);
         dTaupos = [1 1 1]*(Inf);
         slacks_low = zeros(1,12); % slack variables always have a lower bound of zero
-        pq_ax_upp = Inf; % The highest possible axial power is maximal force at maximal leg length change
-        pq_rot_upp = Inf; % The highest possible axial power is maximal force at maximal leg length change
+        pq_ax_upp = Inf(1,6); % The highest possible axial power is maximal force at maximal leg length change
+        pq_rot_upp = Inf(1,6); % The highest possible axial power is maximal force at maximal leg length change
         
         % Integrals (cost)
         [J1upp,J2upp] = deal(Inf);
@@ -440,9 +441,10 @@ switch lower(type)
         dTauneg = [1 1 1]*(-100*Taumax);
         dTaupos = [1 1 1]*(100*Taumax);
         slacks_low = zeros(1,12); % slack variables always have a lower bound of zero
-        [phidot_max,ldot_max] = phidot_ldot_fun([0,lmax+r,uupp,vupp,pi/2,wupp],r,d);
-        pq_ax_upp = Fmax.*ldot_max*ones(1,6); % The highest possible axial power is maximal force at maximal leg length change
-        pq_rot_upp = Taumax.*phidot_max*ones(1,6); % The highest possible axial power is maximal force at maximal leg length change
+        [phidot_max,~] = phidot_ldot_fun([0,lmax+r,uupp,vupp,pi/2,wupp],r,d);
+        ldot_max = sqrt(2)*uupp+r.*wupp;
+        pq_ax_upp = Fmax.*abs(ldot_max)*ones(1,6); % The highest possible axial power is maximal force at maximal leg length change
+        pq_rot_upp = Taumax.*abs(phidot_max)*ones(1,6); % The highest possible axial power is maximal force at maximal leg length change
         
         % Integrals (cost)
         J1upp = c(1)*( sum( pq_ax_upp(1:3) ) + sum( pq_rot_upp(1:3) ) )*T + ...
@@ -471,7 +473,7 @@ bounds.phase(i).control.upper = [dFpos,dTaupos,pq_ax_upp,pq_rot_upp];           
 bounds.phase(i).integral.lower = [0,0];                 % row vector, length = numintegrals
 bounds.phase(i).integral.upper = [J1upp,J2upp];
 
-bounds.parameter.lower = zeros(1,14);                      % row vector, length = numintegrals
+bounds.parameter.lower = zeros(1,11);                      % row vector, length = numintegrals
 bounds.parameter.upper = supp;
 
 end
