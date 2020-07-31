@@ -20,5 +20,17 @@ phidot_paper = w + ( y.*u - xp.*v - r_c.^2.*w + (xp.*w + v).*r_c.*co -(-y.*w +u)
 simplify(( y.*u - xp.*v - r_c.^2.*w + (xp.*w + v).*r_c.*co -(-y.*w +u).*r_c.*so ) -  ( -(W.*dH - H.*dW) ) ) % should be zero
 simplify((xp.^2 + y.^2 +r_c.^2 - 2.*r_c.*(xp.*co+y.*so)) - l.^2) % should be zero
 
-matlabFunction(phidot,'File','phidotfun','vars',{[x y u v o w],r_c,P});
 
+%% compute ldot
+
+ldot = (W.*dW + H.*dH)./l;
+
+ldot_paper = (xp.*u + y.*v - (u+y.*w).*r_c.*co + (-v + xp.*w).*r_c.*so)./l;
+
+simplify(ldot-ldot_paper) % should be zero
+
+
+%% create function to calculate ldot and phidot at once
+% using one function instead of two saves some computational time
+
+matlabFunction([phidot,ldot],'File','phidot_ldot_fun','vars',{[x y u v o w],r_c,P});
