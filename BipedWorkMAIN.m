@@ -11,26 +11,26 @@ auxdata.Taumax = 0.4*auxdata.m*auxdata.g*auxdata.lmax;
 auxdata.r = 0.5*auxdata.lmax;
 auxdata.I = auxdata.m*auxdata.g*auxdata.r^2;
 
-dFpen   = [1e-2,5e-3,1e-3];
-dTaupen = [1e-2,5e-3,1e-3];
+dFpen   = [1e-2,5e-3,5e-4];
+dTaupen = [1e-2,5e-3,5e-4];
 
 auxdata.scaling = 'none';
 
-guess='rand';
+guess=[];
 auxdata.setup.mesh.tolerance = 1e-3;
 auxdata.snoptiter = 500;
 auxdata.meshiter = 2;
-auxdata.c = [1,0,dFpen(1),dTaupen(1),0,0,0,0,0,0];
+auxdata.c = [1,0,dFpen(1),dTaupen(1),1,0,0,0,0,0];
 out = BipedWork(auxdata,guess);
 plotStates(out)
 %%
 auxdata.scaling = 'automatic-hybrid';
 
-guess2 = out;
+guess2 = out(1);
 auxdata.setup.mesh.tolerance = 1e-4;
 auxdata.snoptiter = 1000;
 auxdata.meshiter = 3;
-auxdata.c = [1,0,dFpen(2),dTaupen(2),10,10,10,10,1,1];
+auxdata.c = [1,0,dFpen(2),dTaupen(2),1,10,10,10,1,1];
 out(2) = BipedWork(auxdata,guess2);
 plotStates(out(2))
 %%
@@ -38,7 +38,7 @@ guess3 = out(2);
 auxdata.setup.mesh.tolerance = 1e-4;
 auxdata.snoptiter = 1500;
 auxdata.meshiter = 4;
-auxdata.c = [1,0,dFpen(3),dTaupen(3),100,100,100,100,100,100];
+auxdata.c = [1,0,dFpen(3),dTaupen(3),10,100,100,100,100,100];
 out(3) = BipedWork(auxdata,guess3);
 plotStates(out(3))
 %%

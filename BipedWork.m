@@ -212,14 +212,14 @@ phaseout.dynamics = [xdot,ydot,xddot,yddot,thetadot,thetaddot,Fdot,Taudot,Pdot,Q
 
 % compute velocities relevant to work for each leg
 
-[phidot_tr,ldot_tr] = phidot_ldot_fun(X(:,1:6),r,0);
-[phidot_lead, ldot_lead] = phidot_ldot_fun(X(:,1:6),r,D);
-[phidot_ref, ldot_ref] = phidot_ldot_fun(X(:,1:6),r,d);
+[psidot_tr,ldot_tr] = psidot_ldot_fun(X(:,1:6),r,0);
+[psidot_lead, ldot_lead] = psidot_ldot_fun(X(:,1:6),r,D);
+[psidot_ref, ldot_ref] = psidot_ldot_fun(X(:,1:6),r,d);
 
 % Compute rotational power for each leg
-Prot_tr = Tautr.*phidot_tr;
-Prot_lead = Taulead.*phidot_lead;
-Prot_ref = Tauref.*phidot_ref;
+Prot_tr = Tautr.*psidot_tr;
+Prot_lead = Taulead.*psidot_lead;
+Prot_ref = Tauref.*psidot_ref;
 
 % Compute axial power for each leg
 Pax_tr = Ftr.*ldot_tr;
@@ -441,10 +441,10 @@ switch lower(type)
         dTauneg = [1 1 1]*(-100*Taumax);
         dTaupos = [1 1 1]*(100*Taumax);
         slacks_low = zeros(1,12); % slack variables always have a lower bound of zero
-        [phidot_max,~] = phidot_ldot_fun([0,lmax+r,uupp,vupp,pi/2,wupp],r,d);
+        [psidot_max,~] = psidot_ldot_fun([0,lmax+r,uupp,vupp,pi/2,wupp],r,d);
         ldot_max = sqrt(2)*uupp+r.*wupp;
         pq_ax_upp = Fmax.*abs(ldot_max)*ones(1,6); % The highest possible axial power is maximal force at maximal leg length change
-        pq_rot_upp = Taumax.*abs(phidot_max)*ones(1,6); % The highest possible axial power is maximal force at maximal leg length change
+        pq_rot_upp = Taumax.*abs(psidot_max)*ones(1,6); % The highest possible axial power is maximal force at maximal leg length change
         
         % Integrals (cost)
         J1upp = c(1)*( sum( pq_ax_upp(1:3) ) + sum( pq_rot_upp(1:3) ) )*T + ...
