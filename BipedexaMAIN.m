@@ -52,6 +52,6 @@ if out(3).result.maxerror > out(3).result.setup.mesh.tolerance || out(3).result.
 end
 fname = [date_prefix('yyyymmddHHMM'),'_sim'];
 %% Animate the solution
-Bipedexa_animate(out(end),fname)
+Biped_animate(out(end),fname)
 %% Save the workspace
 save(fname,'out*','auxdata')

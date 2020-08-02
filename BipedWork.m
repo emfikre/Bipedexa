@@ -47,7 +47,7 @@ if isempty(guess)
     guess.phase(i).control = [-m/T^2/2,m/T^2/2,0,0,0,0,zeros(1,12); ...
         -m/T^2/2,m/T^2/2,0,0,0,0,zeros(1,12)];               % array, min numrows = 2, numcols = numcontrols
     guess.phase(i).integral = [1,0.1*T];
-    guess.parameter = zeros(1,11);
+    guess.parameter = zeros(1,14);
     
 elseif strcmpi(guess,'rand')
     rng('shuffle')
@@ -57,7 +57,7 @@ elseif strcmpi(guess,'rand')
     guess.phase(i).state   = rand(2,14);                % array, min numrows = 2, numcols = numstates
     guess.phase(i).control = rand(2,18);               % array, min numrows = 2, numcols = numcontrols
     guess.phase(i).integral = rand(1,2);               % scalar
-    guess.parameter = rand(1,11);
+    guess.parameter = rand(1,14);
 elseif isstruct(guess)
     % it's an output struct from a previous trial
     guess1 = guess;
@@ -150,11 +150,12 @@ p_rot = U(:,13:15);
 q_rot = U(:,16:18);
 
 % Collect relaxation parameters
-sLimb   = Pa(:,1:3);
-sExclF   = Pa(:,4);
-sExclTau = Pa(:,5);
-spq_ax = Pa(:,6:8);
-spq_rot = Pa(:,9:11);
+sLimbF   = Pa(:,1:3);
+sLimbTau = Pa(:,4:6);
+sExclF   = Pa(:,7);
+sExclTau = Pa(:,8);
+spq_ax = Pa(:,9:11);
+spq_rot = Pa(:,12:14);
 
 Ftr=F(:,1);
 Flead=F(:,2);
@@ -182,8 +183,8 @@ Dvec=temp*D;
 rvec=-r.*[cos(theta),sin(theta),zs];
 xc=[x,y,zs];
 ltr = xc +rvec;
-llead=(xc+rvec)-dvec;
-lref=(xc+rvec)-Dvec;
+llead=(xc+rvec)-Dvec;
+lref=(xc+rvec)-dvec;
 
 magnitudeltr=sqrt(dot(ltr,ltr,2));
 magnitudellead=sqrt(dot(llead,llead,2));
@@ -240,34 +241,42 @@ phaseout.integrand = ...
 % Hips above ground; simply ltr(:,2).
 
 % Force and torque activation limb length constraints
-trllc= (Ftr+c(5)*Tautrsqr).*(lmax-magnitudeltr) - sLimb(:,1);
-leadllc= (Flead+c(5)*Tauleadsqr).*(lmax-magnitudellead) - sLimb(:,2);
-refllc= (Fref+c(5)*Taurefsqr).*(lmax-magnitudelref) - sLimb(:,3);
+Ftrllc= Ftr.*(lmax-magnitudeltr) + sLimbF(:,1);
+Fleadllc= Flead.*(lmax-magnitudellead) + sLimbF(:,2);
+Frefllc= Fref.*(lmax-magnitudelref) + sLimbF(:,3);
+
+Tautrllc= Tautrsqr.*(lmax-magnitudeltr) + sLimbTau(:,1);
+Tauleadllc= Tauleadsqr.*(lmax-magnitudellead) + sLimbTau(:,2);
+Taurefllc= Taurefsqr.*(lmax-magnitudelref) + sLimbTau(:,3);
+
 
 % Limb exclusion constraints
-Fxc=P.*Ftr - sExclF;
-Tauxc= Q.*Tautr - sExclTau;
+Fxc= sExclF - P.*Ftr ;
+Tauxc= sExclTau - 100*Q.*Tautrsqr;
 
 % Axial power -> p-q
 Pax2slacks = [Pax_tr,Pax_lead,Pax_ref] - p_ax + q_ax;
 Prot2slacks = [Prot_tr,Prot_lead,Prot_ref] - p_rot + q_rot;
 
 % pq complementarity
-pq_ax = p_ax.*q_ax - spq_ax;
-pq_rot = p_rot.*q_rot - spq_rot;
+pq_ax = spq_ax - p_ax.*q_ax;
+pq_rot = spq_rot - p_rot.*q_rot;
 
-phaseout.path = [ltr(:,2),trllc,leadllc,refllc,Fxc,Tauxc,Pax2slacks,Prot2slacks,pq_ax,pq_rot]; % path constraints, matrix of size num collocation points X num path constraints
+phaseout.path = ...
+    [ltr(:,2),Ftrllc,Fleadllc,Frefllc,Tautrllc,Tauleadllc,Taurefllc,...
+    Fxc,Tauxc,Pax2slacks,Prot2slacks,pq_ax,pq_rot]; % path constraints, matrix of size num collocation points X num path constraints
 end
 
 function output = Endpoint(input)
 
 c = input.auxdata.c;
 Pa = input.parameter;
-sLimb = Pa(1:3);
-sExclF   = Pa(4);
-sExclTau = Pa(5);
-spq_ax = Pa(6:8);
-spq_rot = Pa(9:11);
+sLimbF = Pa(1:3);
+sLimbTau = Pa(4:6);
+sExclF   = Pa(7);
+sExclTau = Pa(8);
+spq_ax = Pa(9:11);
+spq_rot = Pa(12:14);
 
 Finalstates =input.phase(1).finalstate;
 Initialstates= input.phase(1).initialstate;
@@ -298,7 +307,7 @@ output.eventgroup.event = [(Ftr-Flead) (Ttr-Tlead) (ybeg-yend) (xdotbeg-xdotend)
 
 J1 = input.phase.integral(1); % Work cost
 J2 = input.phase.integral(2); % Force rate penalty
-J3 = c(6)*sum(sLimb,2) + c(7)*sExclF + c(8)*sExclTau + c(9)*sum(spq_ax,2) + c(10)*sum(spq_rot,2); % relaxation penalties
+J3 = c(5)*sum(sLimbF,2)+c(6)*sum(sLimbTau,2) + c(7)*sExclF + c(8)*sExclTau + c(9)*sum(spq_ax,2) + c(10)*sum(spq_rot,2); % relaxation penalties
 output.objective = J1+J2+J3; % objective function (scalar)
 
 end
@@ -328,16 +337,17 @@ bounds.eventgroup.upper = [0,0,0,0,0,0,0]; % row vector
 
 % Path constraints (if required)
 % 1 normal (hip above ground)
-% 3 complementarity limb length constaints
-% 2 complementarity equality exclusion constaints
+% 3 complementarity limb length (F) constaints
+% 3 complementarity limb length (Tau) constraints
+% 2 complementarity equality exclusion constaints -> relaxed inequality
 % 3 regular equality constraints (Axial power -> p-q)
 % 3 regular equality constraints (Rot power -> p-q)
-% 6 complementarity pq equality contraints
+% 6 complementarity pq equality contraints -> relaxed inequality
 
 % ----- PHASE 1 ----- %
 i = 1;
-bounds.phase(i).path.lower = zeros(1,18); % row vector, length = number of path constraints in phase
-bounds.phase(i).path.upper =[Inf inf inf inf zeros(1,14)]; % row vector, length = number of path constraints in phase
+bounds.phase(i).path.lower = zeros(1,21); % row vector, length = number of path constraints in phase
+bounds.phase(i).path.upper =[Inf Inf(1,6) Inf(1,2) zeros(1,6) Inf(1,6)]; % row vector, length = number of path constraints in phase
 
 switch lower(type)
     case 'open'
@@ -389,11 +399,12 @@ switch lower(type)
         [J1upp,J2upp] = deal(Inf);
         
         % Parameters
-        % 3 relaxation parameters (leg length)
+        % 3 relaxation parameters (F leg length)
+        % 3 relaxation parameters (Tau leg length)
         % 1 relaxation paramter (leg exclusion, force)
         % 1 relaxation paramter (leg exclusion, torque)
         % 6 relaxation parameters (pq complementarity)
-        supp = Inf(1,11);                      % row vector, length = numintegrals
+        supp = Inf(1,14);                      % row vector, length = numintegrals
         
         
     case 'closed'
@@ -452,12 +463,13 @@ switch lower(type)
         J2upp = c(3)*sum(dFpos.^2,2)*T + c(4)*sum(dTaupos.^2,2)*T;
         
         % Parameters
-        % 3 relaxation parameters (leg length)
+        % 3 relaxation parameters (F leg length)
+        % 3 relaxation parameters (Tau leg length)
         % 1 relaxation parameter (leg exclusion, force)
         % 1 relaxation parameter (leg exclusion, torque)
         % 6 relaxation parameters (pq complementarity)
         
-        supp = 1*ones(1,11);                      % row vector, length = numintegrals
+        supp = 1*ones(1,14);                      % row vector, length = numintegrals
 end
 
 bounds.phase(i).initialstate.lower =    [xlow,ylow,ulow,vlow,thetalow,wlow,Flow   ,Taulowini,Plow,Qlow];           % row vector, length = numstates
@@ -473,7 +485,7 @@ bounds.phase(i).control.upper = [dFpos,dTaupos,pq_ax_upp,pq_rot_upp];           
 bounds.phase(i).integral.lower = [0,0];                 % row vector, length = numintegrals
 bounds.phase(i).integral.upper = [J1upp,J2upp];
 
-bounds.parameter.lower = zeros(1,11);                      % row vector, length = numintegrals
+bounds.parameter.lower = zeros(1,14);                      % row vector, length = numintegrals
 bounds.parameter.upper = supp;
 
 end
