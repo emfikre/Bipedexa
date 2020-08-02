@@ -175,8 +175,8 @@ Dvec=temp*D;
 rvec=-r.*[cos(theta),sin(theta),zs];
 xc=[x,y,zs];
 ltr = xc +rvec;
-llead=(xc+rvec)-dvec;
-lref=(xc+rvec)-Dvec;
+llead=(xc+rvec)-Dvec;
+lref=(xc+rvec)-dvec;
 
 magnitudeltr=sqrt(dot(ltr,ltr,2));
 magnitudellead=sqrt(dot(llead,llead,2));

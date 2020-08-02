@@ -29,6 +29,7 @@ aux = GPOPSoutput.result.setup.auxdata;
 D = aux.D;
 T = aux.T;
 g = aux.g;
+c = aux.c;
 
 for i = 1:2
     % extract data
@@ -62,6 +63,26 @@ for i = 1:2
     
     yyaxis left
     ylabel('Horz. COM pos. - $Dt/T$ [m]','interpreter','latex')
+    
+    % plot information about cost
+    J_work = GPOPSoutput.result.solution.phase.integral(1);
+    J_dFdTau = GPOPSoutput.result.solution.phase.integral(2);
+    Pa = GPOPSoutput.result.solution.parameter;
+    sLimbF = Pa(1:3);
+    sLimbTau = Pa(4:6);
+    sExclF   = Pa(7);
+    sExclTau = Pa(8);
+    try
+    spq_ax = Pa(9:11);
+    spq_rot = Pa(12:14);
+    catch
+        [spq_ax,spq_rot,c(9:10)] = deal(0); % it's a squared force and torque cost, ignore these terms.
+    end
+
+    J_relax = c(5)*sum(sLimbF,2)+c(6)*sum(sLimbTau,2) + c(7)*sExclF + c(8)*sExclTau + c(9)*sum(spq_ax,2) + c(10)*sum(spq_rot,2); % relaxation penalties
+
+    txt = ['Work: ',num2str(J_work),'  Rate: ',num2str(J_dFdTau),'  Relax: ',num2str(J_relax)];
+    text(0.1,1.1,txt,'units','normalized','horizontalalignment','left')
     
     end
     
