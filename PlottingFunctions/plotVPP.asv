@@ -1,0 +1,75 @@
+function plotVPP(GPOPSoutput) %Force vectors would probs go here 
+%UNTITLED Summary of this function goes here
+%   Detailed explanation goes here
+aux = GPOPSoutput.result.setup.auxdata;
+D = aux.D;
+T = aux.T;
+g = aux.g;
+c = aux.c;
+r= aux.r;
+
+t = GPOPSoutput.result.interpsolution.phase.time;
+X = GPOPSoutput.result.interpsolution.phase.state; 
+
+x= X(:,1);
+y=X(:,2);
+theta=X(:,5);
+F = X(:,7:9);
+Tau= X(:,10:12);
+
+zs=zeros(size(x));
+os=ones(size(x));
+temp=[os,zs,zs];
+dvec=temp*d;
+Dvec=temp*D;
+
+rvec=-r.*[cos(theta),sin(theta),zs];
+xc=[x,y,zs];
+ltr = xc +rvec;
+llead=(xc+rvec)-Dvec;
+lref=(xc+rvec)-dvec;
+
+magnitudeltr=sqrt(dot(ltr,ltr,2));
+magnitudellead=sqrt(dot(llead,llead,2));
+magnitudelref= sqrt(dot(lref,lref,2));
+ultr=ltr./magnitudeltr;
+ullead=llead./magnitudellead;
+ulref =lref./magnitudelref;
+
+Ftrvec = Ftr.*ultr;
+Fleadvec = Flead.*ullead;
+Frefvec = Fref.*ulref;
+Tautr=Tau(:,1);
+Taulead=Tau(:,2);
+Tauref=Tau(:,3);
+
+Taurefrfmag= Tauref./magnitudelref; %calculating magnitude of ground reaction force produced by torque
+uTauref=zeros(t,3);
+uTauref(:,1)=cos((pi/2)+acos(x./magnitudelref)); %calculating direction at which vector will point
+uTauref(:,2)=sin((pi/2)+acos(x./magnitudelref));
+uTauref(:,3)=zs;
+
+Taureff=Taurefrfmag.*uTauref;
+
+eqforceref=zeros(t,3);
+eqforceref(:,1)=taureff(:,1)+Frefvec(:,1);
+eqforceref(:,2)=taureff(:,2)+Frefvec(:,2);
+
+
+
+% extracted do the dynamics here.
+
+%quiver function THIS IS WHERE YOU CAN IMPLEMNT THE COM FRAMED SYSTEM, THE
+%com is always 0,0 so subtect x,y and you will get initial posistion of the
+the centrof mass is fixed at a point
+Px=
+Py=0-y
+
+
+
+
+
+figure
+plot(t,F)
+end
+

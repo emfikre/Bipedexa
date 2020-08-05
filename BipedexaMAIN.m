@@ -25,7 +25,7 @@ out = Bipedexa(auxdata,guess);
 plotStates(out)
 
 auxdata.scaling = 'automatic-hybrid';
-
+%%
 guess2 = out;
 auxdata.setup.mesh.tolerance = 1e-4;
 auxdata.snoptiter = 1000;
@@ -52,6 +52,7 @@ if out(3).result.maxerror > out(3).result.setup.mesh.tolerance || out(3).result.
 end
 fname = [date_prefix('yyyymmddHHMM'),'_sim'];
 %% Animate the solution
-Biped_animate(out(end),fname)
+plotVPP(out(end))
+% Biped_animate(out(end),fname)
 %% Save the workspace
 save(fname,'out*','auxdata')

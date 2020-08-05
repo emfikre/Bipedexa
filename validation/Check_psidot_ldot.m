@@ -13,7 +13,7 @@ F = X(:,7:9);
 Tau = X(:,10:12);
 
 [psidot,ldot] = psidot_ldot_fun(X(:,1:6),r,P(i));
-[psi,l] = psi_l_fun(X(:,1:6),r,d);
+[psi,l] = psi_l_fun(X(:,1:6),r,P(i));
 
 psidot_num = [diff(psi)./diff(t);NaN];
 ldot_num = [diff(l)./diff(t);NaN];
