@@ -42,7 +42,7 @@ ulref =lref./magnitudelref;
 
 Ftrvec = Ftr.*ultr;
 Fleadvec = Flead.*ullead;
-Frefvec = Fref.*ulref;
+Frefvec = ulref;
 Tautr=Tau(:,1);
 Taulead=Tau(:,2);
 Tauref=Tau(:,3);
@@ -50,7 +50,7 @@ Tauref=Tau(:,3);
 Taurefrfmag= Tauref./magnitudelref; %calculating magnitude of ground reaction force produced by torque
 uTauref=[pi-(cos((pi/2)+acos(x./magnitudelref))),pi-(sin((pi/2)+acos(x./magnitudelref))),zs]; %calculating direction at which vector will point
 
-Taureff=Taurefrfmag.*uTauref;
+Taureff=uTauref;
 
 
 eqforceref=[(Taureff(:,1)+Frefvec(:,1)),(Taureff(:,2)+Frefvec(:,2))];
@@ -63,11 +63,12 @@ eqforceref=[(Taureff(:,1)+Frefvec(:,1)),(Taureff(:,2)+Frefvec(:,2))];
 %quiver function THIS IS WHERE YOU CAN IMPLEMNT THE COM FRAMED SYSTEM, THE
 %com is always 0,0 so subtect x,y and you will get initial posistion of the
 
-Px=x-(D/2);
+Px=d-x;
 Py=0-y;
-
+figure 
 close all
-quiver(Px,Py,eqforceref(:,1),eqforceref(:,2))
+axis equal
+quiver(Px,Py,Frefvec(:,1),Frefvec(:,2),0)
 
 end
 

@@ -12,8 +12,8 @@ auxdata.Taumax = 1*auxdata.m*auxdata.g*auxdata.lmax;
 auxdata.r = 0.4*auxdata.lmax;
 auxdata.I = 0.09*auxdata.m*auxdata.lmax^2;
 
-dFpen   = [1 0.1 0.1]*1e-1;
-dTaupen = [1 0.1 0.1]*1e-1;
+dFpen   = [1 0.1 0.1]*1e-3;
+dTaupen = [1 0.1 0.1]*1e-3;
 
 auxdata.scaling = 'none';
 
