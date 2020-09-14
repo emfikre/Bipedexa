@@ -144,8 +144,8 @@ dF = U(:,1:3);
 dTau = U(:,4:6);
 
 % Collect slack variables
-p_ax = U(:,7:9);
-q_ax = U(:,10:12);
+p_ax = U(:,7:9); % positive axial power
+q_ax = U(:,10:12); % negative axial power
 p_rot = U(:,13:15);
 q_rot = U(:,16:18);
 

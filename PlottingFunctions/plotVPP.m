@@ -42,7 +42,7 @@ ulref =lref./magnitudelref;
 
 Ftrvec = Ftr.*ultr;
 Fleadvec = Flead.*ullead;
-Frefvec = ulref;
+Frefvec = ulref*1.25;
 Tautr=Tau(:,1);
 Taulead=Tau(:,2);
 Tauref=Tau(:,3);
@@ -63,12 +63,14 @@ eqforceref=[(Taureff(:,1)+Frefvec(:,1)),(Taureff(:,2)+Frefvec(:,2))];
 %quiver function THIS IS WHERE YOU CAN IMPLEMNT THE COM FRAMED SYSTEM, THE
 %com is always 0,0 so subtect x,y and you will get initial posistion of the
 
+i = 1:10:length(t);
+
 Px=d-x;
 Py=0-y;
 figure 
 close all
 axis equal
-quiver(Px,Py,Frefvec(:,1),Frefvec(:,2),0)
+quiver(Px(i),Py(i),Frefvec(i,1),Frefvec(i,2),0)
 
 end
 
