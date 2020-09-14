@@ -51,12 +51,10 @@ Taurefrfmag= Tauref./magnitudelref; %calculating magnitude of ground reaction fo
 legangle= acos(ultr(:,1));
 torangle= legangle+(pi/2);
 j=1:length(t);
-utor=zeros(length(t),2);
-utor(j,1)=cos(torangle);
-utor(j,2)=sin(torangle);
+utor=zeros(t,2);
+utor(j,1)=
 
-
-Taureff=utor.*Taurefrfmag;
+Taureff=uTauref;
 
 
 eqforceref=[(Taureff(:,1)+Frefvec(:,1)),(Taureff(:,2)+Frefvec(:,2))];
@@ -76,7 +74,7 @@ close all
 axis equal
 
 figure('color','w')
-quiver(Px(i,1),Py(i,1),eqforceref(i,1),eqforceref(i,2),0)
+quiver(Px(i,1),Py(i,1),Frefvec(i,1),Frefvec(i,2),0)
 hold on
 grid on
 plot(0,0,'o')
